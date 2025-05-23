@@ -23,9 +23,9 @@ export const LoginForm = () => {
       // Simulate API call for login
       setTimeout(() => {
         const mockUsers = [
-          { email: "admin@caresync.com", password: "admin123", role: "admin" },
-          { email: "doctor@caresync.com", password: "doctor123", role: "doctor" },
-          { email: "patient@caresync.com", password: "patient123", role: "patient" }
+          { email: "admin@caresync.com", password: "admin123", role: "admin" as const },
+          { email: "doctor@caresync.com", password: "doctor123", role: "doctor" as const },
+          { email: "patient@caresync.com", password: "patient123", role: "patient" as const }
         ];
 
         const user = mockUsers.find(user => user.email === email && user.password === password);

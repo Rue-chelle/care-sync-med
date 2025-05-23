@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -72,6 +71,13 @@ export const RegisterForm = () => {
     }
   };
 
+  // Type-safe handler for role selection
+  const handleRoleChange = (value: string) => {
+    if (value === "patient" || value === "doctor" || value === "admin") {
+      setRole(value);
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4 mt-4">
       <div className="space-y-2">
@@ -97,7 +103,7 @@ export const RegisterForm = () => {
       </div>
       <div className="space-y-2">
         <Label htmlFor="role">Role</Label>
-        <Select value={role} onValueChange={setRole}>
+        <Select value={role} onValueChange={handleRoleChange}>
           <SelectTrigger>
             <SelectValue placeholder="Select role" />
           </SelectTrigger>

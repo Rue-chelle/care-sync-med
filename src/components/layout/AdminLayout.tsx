@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Bell } from "lucide-react";
+import { Bell, Menu, X } from "lucide-react";
 import { useUserStore } from "@/stores/userStore";
 
 import {
@@ -22,7 +22,8 @@ import {
 
 import { 
   Users, Settings, Calendar, FileText, 
-  BarChart, Package, MessageSquare, Building
+  BarChart, Package, MessageSquare, Building,
+  Stethoscope, CreditCard, FolderOpen
 } from "lucide-react";
 
 type AdminLayoutProps = {
@@ -34,7 +35,7 @@ type AdminLayoutProps = {
 export const AdminLayout = ({ children, currentTab, setCurrentTab }: AdminLayoutProps) => {
   const { user, logout } = useUserStore();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -42,18 +43,20 @@ export const AdminLayout = ({ children, currentTab, setCurrentTab }: AdminLayout
   };
 
   const menuItems = [
-    { id: "overview", label: "Overview", icon: BarChart },
     { id: "users", label: "User Management", icon: Users },
-    { id: "appointments", label: "Appointments", icon: Calendar },
-    { id: "prescriptions", label: "Prescriptions", icon: FileText },
-    { id: "billing", label: "Billing", icon: FileText },
-    { id: "patients", label: "Patient Records", icon: Users },
+    { id: "prescriptions", label: "Prescriptions", icon: Stethoscope },
+    { id: "billing", label: "Billing", icon: CreditCard },
+    { id: "patients", label: "Patient Records", icon: FolderOpen },
     { id: "inventory", label: "Inventory", icon: Package },
     { id: "messaging", label: "Messaging", icon: MessageSquare },
     { id: "analytics", label: "Analytics", icon: BarChart },
     { id: "branches", label: "Branches", icon: Building },
     { id: "settings", label: "System Settings", icon: Settings },
   ];
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-teal-50">
@@ -62,6 +65,14 @@ export const AdminLayout = ({ children, currentTab, setCurrentTab }: AdminLayout
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleSidebar}
+                className="md:hidden"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
               <div className="relative">
                 <div className="h-10 w-10 healthcare-gradient rounded-xl flex items-center justify-center">
                   <div className="h-6 w-6 text-white">CS</div>
@@ -94,54 +105,66 @@ export const AdminLayout = ({ children, currentTab, setCurrentTab }: AdminLayout
         </div>
       </header>
 
+      {/* Sidebar overlay for mobile */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+          onClick={toggleSidebar}
+        />
+      )}
+
       {/* Main content with sidebar */}
-      <SidebarProvider>
-        <div className="flex w-full min-h-[calc(100vh-4.5rem)]">
-          <Sidebar className="border-r">
-            <SidebarHeader>
-              <SidebarTrigger />
-            </SidebarHeader>
-            
-            <SidebarContent>
-              <SidebarGroup>
-                <SidebarGroupLabel>Dashboard</SidebarGroupLabel>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {menuItems.map((item) => (
-                      <SidebarMenuItem key={item.id}>
-                        <SidebarMenuButton 
-                          isActive={currentTab === item.id}
-                          onClick={() => setCurrentTab(item.id)}
-                          tooltip={item.label}
-                        >
-                          <item.icon className="size-4 mr-2" />
-                          <span>{item.label}</span>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
-            </SidebarContent>
-            
-            <SidebarFooter className="border-t p-4">
-              <div className="text-sm text-muted-foreground">
-                CareSync Admin v1.0
-              </div>
-            </SidebarFooter>
-          </Sidebar>
+      <div className="flex w-full min-h-[calc(100vh-4.5rem)]">
+        {/* Sidebar */}
+        <div className={`
+          fixed md:relative z-50 md:z-auto
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+          transition-transform duration-300 ease-in-out
+          w-64 bg-white border-r border-gray-200 h-full
+        `}>
+          <div className="p-4 border-b border-gray-100 flex items-center justify-between md:hidden">
+            <h2 className="font-semibold text-gray-800">Menu</h2>
+            <Button variant="ghost" size="icon" onClick={toggleSidebar}>
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
           
-          {/* Main content area */}
-          <div className="flex-1 p-6">
-            <div className="mb-6">
-              <h2 className="text-3xl font-bold text-slate-800">{
-                menuItems.find(item => item.id === currentTab)?.label || "Dashboard"
-              }</h2>
-            </div>
-            {children}
+          <div className="p-4">
+            <nav className="space-y-2">
+              {menuItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setCurrentTab(item.id);
+                    setSidebarOpen(false);
+                  }}
+                  className={`
+                    w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors
+                    ${currentTab === item.id 
+                      ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white' 
+                      : 'text-gray-700 hover:bg-gray-100'
+                    }
+                  `}
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span className="font-medium">{item.label}</span>
+                </button>
+              ))}
+            </nav>
           </div>
         </div>
-      </SidebarProvider>
+        
+        {/* Main content area */}
+        <div className="flex-1 p-6">
+          <div className="mb-6">
+            <h2 className="text-3xl font-bold text-slate-800">
+              {currentTab === "overview" ? "Dashboard Overview" : 
+               menuItems.find(item => item.id === currentTab)?.label || "Dashboard"}
+            </h2>
+          </div>
+          {children}
+        </div>
+      </div>
     </div>
   );
 };

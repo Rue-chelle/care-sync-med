@@ -1,10 +1,11 @@
 
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Users, Bell, MessageSquare, Phone, Mail, Plus, Activity, Clock, UserCheck } from "lucide-react";
+import { Calendar, Users, Bell, MessageSquare, Phone, Mail, Plus, Activity, Clock, UserCheck, ArrowRight } from "lucide-react";
 import { PatientList } from "@/components/PatientList";
 import { AppointmentScheduler } from "@/components/AppointmentScheduler";
 import { ReminderSettings } from "@/components/ReminderSettings";
@@ -37,6 +38,13 @@ const Index = () => {
               </div>
             </div>
             <div className="flex items-center space-x-3">
+              <Link to="/patient/auth">
+                <Button variant="outline" size="sm" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Patient Portal
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
               <Button variant="outline" size="sm" className="relative">
                 <Bell className="h-4 w-4 mr-2" />
                 Notifications
@@ -79,10 +87,19 @@ const Index = () => {
           <TabsContent value="dashboard" className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-3xl font-bold text-slate-800">Dashboard Overview</h2>
-              <Button className="healthcare-gradient text-white hover:opacity-90 transition-opacity">
-                <Plus className="h-4 w-4 mr-2" />
-                Quick Schedule
-              </Button>
+              <div className="flex gap-2">
+                <Link to="/patient/auth">
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Patient Portal
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+                <Button className="healthcare-gradient text-white hover:opacity-90 transition-opacity">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Quick Schedule
+                </Button>
+              </div>
             </div>
             
             <DashboardStats />

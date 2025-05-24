@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import PatientAuth from "./pages/PatientAuth";
 import PatientDashboard from "./pages/PatientDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
@@ -24,6 +25,7 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* Legacy auth route for admin/doctor */}
             <Route path="/auth" element={
               isAuthenticated ? (
                 <Navigate to={user?.role === 'admin' ? '/admin' : user?.role === 'patient' ? '/patient' : '/'} />
@@ -31,6 +33,9 @@ const App = () => {
                 <Auth />
               )
             } />
+            
+            {/* Patient authentication route */}
+            <Route path="/patient/auth" element={<PatientAuth />} />
             
             {/* Doctor routes */}
             <Route 
@@ -45,11 +50,7 @@ const App = () => {
             {/* Patient routes */}
             <Route 
               path="/patient" 
-              element={
-                <ProtectedRoute requiredRole="patient">
-                  <PatientDashboard />
-                </ProtectedRoute>
-              } 
+              element={<PatientDashboard />} 
             />
             
             {/* Admin routes */}

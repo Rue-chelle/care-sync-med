@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserStore } from "@/stores/userStore";
 
 export const PatientLoginForm = () => {
   const [email, setEmail] = useState("");
@@ -13,6 +14,7 @@ export const PatientLoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { login } = useUserStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,11 +36,35 @@ export const PatientLoginForm = () => {
       }
 
       if (data.user) {
-        toast({
-          title: "Login successful",
-          description: "Welcome back!",
-        });
-        navigate("/patient");
+        // Check if user has a patient profile
+        const { data: patientData } = await supabase
+          .from('patients')
+          .select('*')
+          .eq('user_id', data.user.id)
+          .single();
+
+        if (patientData) {
+          // Update user store with patient role
+          login({
+            id: data.user.id,
+            email: data.user.email!,
+            fullName: patientData.full_name,
+            role: 'patient'
+          });
+
+          toast({
+            title: "Login successful",
+            description: "Welcome back!",
+          });
+          navigate("/patient");
+        } else {
+          toast({
+            title: "Access denied",
+            description: "Patient profile not found. Please contact support.",
+            variant: "destructive",
+          });
+          await supabase.auth.signOut();
+        }
       }
     } catch (error) {
       toast({

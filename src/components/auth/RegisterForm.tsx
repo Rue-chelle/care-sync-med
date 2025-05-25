@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,13 +7,15 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUserStore } from "@/stores/userStore";
+import { supabase } from "@/integrations/supabase/client";
 
 export const RegisterForm = () => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState<"patient" | "doctor" | "admin">("patient");
+  const [role, setRole] = useState<"doctor" | "admin">("doctor");
+  const [specialization, setSpecialization] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -34,16 +37,50 @@ export const RegisterForm = () => {
     }
 
     try {
-      // Simulate API call for registration
-      setTimeout(() => {
-        const newUser = {
-          id: Date.now().toString(),
+      // Sign up with Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            role: role
+          }
+        }
+      });
+
+      if (error) {
+        toast({
+          title: "Registration failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data.user) {
+        // Create role-specific profile
+        if (role === "doctor") {
+          const { error: doctorError } = await supabase
+            .from('doctors')
+            .insert({
+              user_id: data.user.id,
+              full_name: fullName,
+              email: email,
+              specialization: specialization || 'General Practice',
+            });
+
+          if (doctorError) {
+            console.error('Doctor profile creation error:', doctorError);
+          }
+        }
+
+        register({
+          id: data.user.id,
           fullName,
           email,
           role,
-        };
-        
-        register(newUser);
+        });
         
         toast({
           title: "Registration successful",
@@ -55,26 +92,16 @@ export const RegisterForm = () => {
           navigate("/admin");
         } else if (role === "doctor") {
           navigate("/");
-        } else {
-          navigate("/patient");
         }
-
-        setIsLoading(false);
-      }, 1000);
+      }
     } catch (error) {
       toast({
         title: "Registration failed",
         description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
-    }
-  };
-
-  // Type-safe handler for role selection
-  const handleRoleChange = (value: string) => {
-    if (value === "patient" || value === "doctor" || value === "admin") {
-      setRole(value);
     }
   };
 
@@ -103,17 +130,27 @@ export const RegisterForm = () => {
       </div>
       <div className="space-y-2">
         <Label htmlFor="role">Role</Label>
-        <Select value={role} onValueChange={handleRoleChange}>
+        <Select value={role} onValueChange={(value: "doctor" | "admin") => setRole(value)}>
           <SelectTrigger>
             <SelectValue placeholder="Select role" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="patient">Patient</SelectItem>
             <SelectItem value="doctor">Doctor</SelectItem>
             <SelectItem value="admin">Admin</SelectItem>
           </SelectContent>
         </Select>
       </div>
+      {role === "doctor" && (
+        <div className="space-y-2">
+          <Label htmlFor="specialization">Specialization</Label>
+          <Input 
+            id="specialization" 
+            placeholder="e.g., Cardiology, General Practice" 
+            value={specialization} 
+            onChange={(e) => setSpecialization(e.target.value)} 
+          />
+        </div>
+      )}
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>
         <Input 

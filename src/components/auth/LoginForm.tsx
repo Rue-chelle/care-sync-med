@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useUserStore } from "@/stores/userStore";
+import { supabase } from "@/integrations/supabase/client";
 
 export const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -20,30 +21,38 @@ export const LoginForm = () => {
     setIsLoading(true);
 
     try {
-      // Simulate API call for login
-      setTimeout(() => {
+      // First try Supabase authentication
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        // If Supabase fails, try mock authentication for demo purposes
         const mockUsers = [
           { email: "admin@caresync.com", password: "admin123", role: "admin" as const },
-          { email: "doctor@caresync.com", password: "doctor123", role: "doctor" as const },
-          { email: "patient@caresync.com", password: "patient123", role: "patient" as const }
+          { email: "doctor@caresync.com", password: "doctor123", role: "doctor" as const }
         ];
 
-        const user = mockUsers.find(user => user.email === email && user.password === password);
+        const mockUser = mockUsers.find(user => user.email === email && user.password === password);
         
-        if (user) {
-          login(user);
+        if (mockUser) {
+          login({
+            id: "mock-" + mockUser.role,
+            email: mockUser.email,
+            role: mockUser.role
+          });
+          
           toast({
             title: "Login successful",
-            description: `Welcome back, ${user.role}!`,
+            description: `Welcome back, ${mockUser.role}!`,
           });
 
           // Redirect based on role
-          if (user.role === "admin") {
+          if (mockUser.role === "admin") {
             navigate("/admin");
-          } else if (user.role === "doctor") {
+          } else if (mockUser.role === "doctor") {
             navigate("/");
-          } else {
-            navigate("/patient");
           }
         } else {
           toast({
@@ -52,14 +61,66 @@ export const LoginForm = () => {
             variant: "destructive",
           });
         }
-        setIsLoading(false);
-      }, 1000);
+        return;
+      }
+
+      if (data.user) {
+        // Check user role from database
+        const { data: doctorData } = await supabase
+          .from('doctors')
+          .select('*')
+          .eq('user_id', data.user.id)
+          .single();
+
+        if (doctorData) {
+          // User is a doctor
+          login({
+            id: data.user.id,
+            email: data.user.email!,
+            fullName: doctorData.full_name,
+            role: 'doctor'
+          });
+
+          toast({
+            title: "Login successful",
+            description: "Welcome back, Doctor!",
+          });
+          navigate("/");
+          return;
+        }
+
+        // Check if admin (you can implement admin table later)
+        // For now, checking if email contains admin
+        if (data.user.email?.includes('admin')) {
+          login({
+            id: data.user.id,
+            email: data.user.email!,
+            role: 'admin'
+          });
+
+          toast({
+            title: "Login successful",
+            description: "Welcome back, Admin!",
+          });
+          navigate("/admin");
+          return;
+        }
+
+        // If no specific role found, sign out
+        await supabase.auth.signOut();
+        toast({
+          title: "Access denied",
+          description: "Your account doesn't have the required permissions for this portal.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       toast({
         title: "Login failed",
         description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -99,7 +160,6 @@ export const LoginForm = () => {
         <p>Demo credentials:</p>
         <p>Admin: admin@caresync.com / admin123</p>
         <p>Doctor: doctor@caresync.com / doctor123</p>
-        <p>Patient: patient@caresync.com / patient123</p>
       </div>
     </form>
   );

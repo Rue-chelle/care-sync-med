@@ -66,53 +66,340 @@ export type Database = {
           },
         ]
       }
+      doctor_analytics: {
+        Row: {
+          appointments_cancelled: number | null
+          appointments_completed: number | null
+          appointments_no_show: number | null
+          created_at: string
+          date: string
+          doctor_id: string
+          id: string
+          patients_seen: number | null
+          total_revenue: number | null
+          updated_at: string
+        }
+        Insert: {
+          appointments_cancelled?: number | null
+          appointments_completed?: number | null
+          appointments_no_show?: number | null
+          created_at?: string
+          date: string
+          doctor_id: string
+          id?: string
+          patients_seen?: number | null
+          total_revenue?: number | null
+          updated_at?: string
+        }
+        Update: {
+          appointments_cancelled?: number | null
+          appointments_completed?: number | null
+          appointments_no_show?: number | null
+          created_at?: string
+          date?: string
+          doctor_id?: string
+          id?: string
+          patients_seen?: number | null
+          total_revenue?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_analytics_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_availability: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          doctor_id: string
+          end_time: string
+          id: string
+          is_available: boolean | null
+          start_time: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          doctor_id: string
+          end_time: string
+          id?: string
+          is_available?: boolean | null
+          start_time: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          doctor_id?: string
+          end_time?: string
+          id?: string
+          is_available?: boolean | null
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_availability_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctors: {
         Row: {
           available_days: string[] | null
           available_hours_end: string | null
           available_hours_start: string | null
+          bio: string | null
           consultation_fee: number | null
           created_at: string
           email: string | null
           full_name: string
           id: string
+          license_number: string | null
           phone: string | null
           specialization: string
           updated_at: string
           user_id: string
+          years_experience: number | null
         }
         Insert: {
           available_days?: string[] | null
           available_hours_end?: string | null
           available_hours_start?: string | null
+          bio?: string | null
           consultation_fee?: number | null
           created_at?: string
           email?: string | null
           full_name: string
           id?: string
+          license_number?: string | null
           phone?: string | null
           specialization: string
           updated_at?: string
           user_id: string
+          years_experience?: number | null
         }
         Update: {
           available_days?: string[] | null
           available_hours_end?: string | null
           available_hours_start?: string | null
+          bio?: string | null
           consultation_fee?: number | null
           created_at?: string
           email?: string | null
           full_name?: string
           id?: string
+          license_number?: string | null
           phone?: string | null
           specialization?: string
           updated_at?: string
           user_id?: string
+          years_experience?: number | null
         }
         Relationships: [
           {
             foreignKeyName: "doctors_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      file_attachments: {
+        Row: {
+          appointment_id: string | null
+          created_at: string
+          description: string | null
+          doctor_id: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string
+          id: string
+          medical_record_id: string | null
+          patient_id: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          created_at?: string
+          description?: string | null
+          doctor_id: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type: string
+          id?: string
+          medical_record_id?: string | null
+          patient_id: string
+        }
+        Update: {
+          appointment_id?: string | null
+          created_at?: string
+          description?: string | null
+          doctor_id?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string
+          id?: string
+          medical_record_id?: string | null
+          patient_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_attachments_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_attachments_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_attachments_medical_record_id_fkey"
+            columns: ["medical_record_id"]
+            isOneToOne: false
+            referencedRelation: "medical_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_attachments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medical_records: {
+        Row: {
+          appointment_id: string | null
+          created_at: string
+          diagnosis: string | null
+          doctor_id: string
+          id: string
+          notes: string | null
+          patient_id: string
+          symptoms: string | null
+          treatment_plan: string | null
+          updated_at: string
+          vital_signs: Json | null
+        }
+        Insert: {
+          appointment_id?: string | null
+          created_at?: string
+          diagnosis?: string | null
+          doctor_id: string
+          id?: string
+          notes?: string | null
+          patient_id: string
+          symptoms?: string | null
+          treatment_plan?: string | null
+          updated_at?: string
+          vital_signs?: Json | null
+        }
+        Update: {
+          appointment_id?: string | null
+          created_at?: string
+          diagnosis?: string | null
+          doctor_id?: string
+          id?: string
+          notes?: string | null
+          patient_id?: string
+          symptoms?: string | null
+          treatment_plan?: string | null
+          updated_at?: string
+          vital_signs?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_records_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_records_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_records_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          appointment_id: string | null
+          content: string
+          created_at: string
+          id: string
+          message_type: string | null
+          read_at: string | null
+          recipient_id: string
+          sender_id: string
+          subject: string | null
+        }
+        Insert: {
+          appointment_id?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          message_type?: string | null
+          read_at?: string | null
+          recipient_id: string
+          sender_id: string
+          subject?: string | null
+        }
+        Update: {
+          appointment_id?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          message_type?: string | null
+          read_at?: string | null
+          recipient_id?: string
+          sender_id?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -219,6 +506,9 @@ export type Database = {
           instructions: string | null
           medication_name: string
           patient_id: string
+          prescription_date: string | null
+          refills_remaining: number | null
+          status: string | null
         }
         Insert: {
           appointment_id: string
@@ -231,6 +521,9 @@ export type Database = {
           instructions?: string | null
           medication_name: string
           patient_id: string
+          prescription_date?: string | null
+          refills_remaining?: number | null
+          status?: string | null
         }
         Update: {
           appointment_id?: string
@@ -243,6 +536,9 @@ export type Database = {
           instructions?: string | null
           medication_name?: string
           patient_id?: string
+          prescription_date?: string | null
+          refills_remaining?: number | null
+          status?: string | null
         }
         Relationships: [
           {

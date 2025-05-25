@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Index from "./pages/Index";
+import DoctorDashboard from "./pages/DoctorDashboard";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import PatientAuth from "./pages/PatientAuth";
@@ -37,12 +37,12 @@ const App = () => {
             {/* Patient authentication route */}
             <Route path="/patient/auth" element={<PatientAuth />} />
             
-            {/* Doctor routes */}
+            {/* Doctor routes - Updated to use DoctorDashboard */}
             <Route 
               path="/" 
               element={
                 <ProtectedRoute requiredRole="doctor">
-                  <Index />
+                  <DoctorDashboard />
                 </ProtectedRoute>
               } 
             />

@@ -2,7 +2,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-type UserRole = "patient" | "doctor" | "admin";
+type UserRole = "patient" | "doctor" | "admin" | "super_admin";
 
 interface User {
   id?: string;

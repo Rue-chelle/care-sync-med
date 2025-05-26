@@ -10,6 +10,8 @@ import Auth from "./pages/Auth";
 import PatientAuth from "./pages/PatientAuth";
 import PatientDashboard from "./pages/PatientDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import SuperAdminAuth from "./pages/SuperAdminAuth";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { useUserStore } from "./stores/userStore";
 

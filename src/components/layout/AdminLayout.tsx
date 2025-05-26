@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 type AdminLayoutProps = {
-  children: React.React.ReactNode;
+  children: React.ReactNode;
   currentTab: string;
   setCurrentTab: (tab: string) => void;
 };
@@ -37,7 +37,6 @@ export const AdminLayout = ({ children, currentTab, setCurrentTab }: AdminLayout
         return;
       }
       
-      // Clear user store and redirect
       logout();
       navigate("/auth");
       

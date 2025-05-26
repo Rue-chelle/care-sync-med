@@ -7,6 +7,11 @@ import { UserManagement } from "@/components/admin/UserManagement";
 import { Prescriptions } from "@/components/admin/Prescriptions";
 import { Billing } from "@/components/admin/Billing";
 import { AdminMessaging } from "@/components/admin/Messaging";
+import { SystemSettings } from "@/components/admin/SystemSettings";
+import { BranchManagement } from "@/components/admin/BranchManagement";
+import { Analytics } from "@/components/admin/Analytics";
+import { Inventory } from "@/components/admin/Inventory";
+import { PatientRecords } from "@/components/admin/PatientRecords";
 import { 
   Table,
   TableBody,
@@ -119,21 +124,6 @@ const AdminDashboard = () => {
     </div>
   );
 
-  // Placeholder components for other functionalities
-  const PlaceholderComponent = ({ title }: { title: string }) => (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>This section is under development</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p className="text-center py-12 text-muted-foreground">
-          {title} interface will be implemented here
-        </p>
-      </CardContent>
-    </Card>
-  );
-
   // Render appropriate content based on selected tab
   const renderTabContent = () => {
     switch (currentTab) {
@@ -148,15 +138,15 @@ const AdminDashboard = () => {
       case "messaging":
         return <AdminMessaging />;
       case "patients":
-        return <PlaceholderComponent title="Patient Records" />;
+        return <PatientRecords />;
       case "inventory":
-        return <PlaceholderComponent title="Inventory Management" />;
+        return <Inventory />;
       case "analytics":
-        return <PlaceholderComponent title="Analytics & Reporting" />;
+        return <Analytics />;
       case "branches":
-        return <PlaceholderComponent title="Branch Management" />;
+        return <BranchManagement />;
       case "settings":
-        return <PlaceholderComponent title="System Settings" />;
+        return <SystemSettings />;
       default:
         return <OverviewContent />;
     }

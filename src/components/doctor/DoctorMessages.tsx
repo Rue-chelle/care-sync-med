@@ -1,344 +1,220 @@
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Phone, Video, MoreHorizontal, Search } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { MessageSquare, Send, ExternalLink } from "lucide-react";
 
 export const DoctorMessages = () => {
-  const [activeTab, setActiveTab] = useState("internal");
+  const [patients, setPatients] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
-  const [newMessage, setNewMessage] = useState("");
-  const [selectedChat, setSelectedChat] = useState<any>(null);
-  const [contacts, setContacts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [selectedPatient, setSelectedPatient] = useState("");
+  const [messageContent, setMessageContent] = useState("");
+  const [messageType, setMessageType] = useState("internal");
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchContacts();
-  }, [activeTab]);
+    fetchPatients();
+    fetchMessages();
+  }, []);
 
-  // Fetch contacts
-  const fetchContacts = async () => {
+  const fetchPatients = async () => {
     try {
-      setLoading(true);
-      
-      // For internal chats - fetch patients and other healthcare providers
-      if (activeTab === 'internal') {
-        const { data: patients, error: patientsError } = await supabase
-          .from('patients')
-          .select('id, full_name, email')
-          .limit(8);
-        
-        if (patientsError) throw patientsError;
-        
-        // Mock some admin contacts
-        const adminContacts = [
-          { id: 'admin1', name: 'Admin Support', email: 'support@caresync.com', role: 'Admin' },
-          { id: 'admin2', name: 'Front Desk', email: 'frontdesk@caresync.com', role: 'Staff' },
-        ];
-        
-        // Mock some other doctors
-        const doctorContacts = [
-          { id: 'doc1', name: 'Dr. Sarah Johnson', role: 'Doctor', specialty: 'Cardiology' },
-          { id: 'doc2', name: 'Dr. Michael Chen', role: 'Doctor', specialty: 'Neurology' },
-        ];
-        
-        const formattedContacts = [
-          ...adminContacts,
-          ...doctorContacts,
-          ...patients.map(patient => ({
-            id: patient.id,
-            name: patient.full_name || 'Patient',
-            email: patient.email,
-            role: 'Patient',
-          }))
-        ];
-        
-        // Add some random last seen times and unread status
-        const contactsWithStatus = formattedContacts.map(contact => ({
-          ...contact,
-          lastSeen: Math.random() > 0.3 ? 'Online' : `${Math.floor(Math.random() * 5) + 1} hours ago`,
-          hasUnread: Math.random() > 0.7
-        }));
-        
-        setContacts(contactsWithStatus);
-      } 
-      // For external/WhatsApp - use mock data
-      else {
-        const whatsappContacts = [
-          { id: 'wp1', name: 'John Smith', phone: '+1234567891', role: 'Patient', platform: 'WhatsApp', lastSeen: '5 min ago', hasUnread: true },
-          { id: 'wp2', name: 'Emma Williams', phone: '+1234567892', role: 'Patient', platform: 'WhatsApp', lastSeen: '2 hours ago', hasUnread: false },
-          { id: 'wp3', name: 'Hospital Lab', phone: '+1234567893', role: 'Staff', platform: 'WhatsApp', lastSeen: 'Yesterday', hasUnread: false },
-          { id: 'wp4', name: 'Clinic Admin', phone: '+1234567894', role: 'Admin', platform: 'WhatsApp', lastSeen: 'Online', hasUnread: true }
-        ];
-        
-        setContacts(whatsappContacts);
-      }
-      
-      // Select first contact by default
-      
+      const { data, error } = await supabase
+        .from("patients")
+        .select("id, full_name, phone")
+        .limit(50);
+
+      if (error) throw error;
+      setPatients(data || []);
     } catch (error) {
-      console.error("Error fetching contacts:", error);
+      console.error("Error fetching patients:", error);
+    }
+  };
+
+  const fetchMessages = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("messages")
+        .select(`
+          *,
+          sender:users!messages_sender_id_fkey(email),
+          recipient:users!messages_recipient_id_fkey(email)
+        `)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      setMessages(data || []);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!selectedPatient || !messageContent.trim()) {
       toast({
-        title: "Error loading contacts",
-        description: "Could not load your contacts. Please try again.",
+        title: "Error",
+        description: "Please select a patient and enter a message",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
+      return;
     }
-  };
 
-  useEffect(() => {
-    // When contacts change, select the first one if nothing is selected
-    if (contacts.length > 0 && !selectedChat) {
-      setSelectedChat(contacts[0]);
-      fetchMessages(contacts[0].id);
-    }
-  }, [contacts]);
+    try {
+      if (messageType === "whatsapp") {
+        const patient = patients.find(p => p.id === selectedPatient);
+        if (patient?.phone) {
+          const whatsappUrl = `https://wa.me/${patient.phone}?text=${encodeURIComponent(messageContent)}`;
+          window.open(whatsappUrl, "_blank");
+          
+          toast({
+            title: "WhatsApp opened",
+            description: "Continue the conversation in WhatsApp",
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Patient phone number not available",
+            variant: "destructive",
+          });
+        }
+      } else {
+        const { error } = await supabase
+          .from("messages")
+          .insert({
+            recipient_id: selectedPatient,
+            content: messageContent,
+            message_type: "doctor_patient",
+            subject: "Doctor Message"
+          });
 
-  // Fetch messages for selected chat
-  const fetchMessages = async (contactId: string) => {
-    // For demo, we'll use mock data
-    const mockMessages = [
-      {
-        id: 1,
-        sender: 'contact',
-        content: 'Hello Doctor, I have been experiencing severe headaches.',
-        timestamp: new Date(Date.now() - 3600000).toISOString(),
-      },
-      {
-        id: 2,
-        sender: 'doctor',
-        content: 'I understand. How long have you been having these headaches?',
-        timestamp: new Date(Date.now() - 3500000).toISOString(),
-      },
-      {
-        id: 3,
-        sender: 'contact',
-        content: 'For about a week now. They seem to be worse in the morning.',
-        timestamp: new Date(Date.now() - 3400000).toISOString(),
-      },
-      {
-        id: 4,
-        sender: 'doctor',
-        content: 'Have you taken any medication for the pain?',
-        timestamp: new Date(Date.now() - 3300000).toISOString(),
-      },
-      {
-        id: 5,
-        sender: 'contact',
-        content: 'Just some over-the-counter painkillers, but they don\'t help much.',
-        timestamp: new Date(Date.now() - 3200000).toISOString(),
+        if (error) throw error;
+
+        toast({
+          title: "Message sent",
+          description: "Your message has been sent successfully",
+        });
+
+        setMessageContent("");
+        fetchMessages();
       }
-    ];
-    
-    setMessages(mockMessages);
-  };
-
-  const handleSendMessage = () => {
-    if (!newMessage.trim() || !selectedChat) return;
-    
-    // Add message to UI immediately
-    const newMsg = {
-      id: Date.now(),
-      sender: 'doctor',
-      content: newMessage,
-      timestamp: new Date().toISOString(),
-    };
-    
-    setMessages([...messages, newMsg]);
-    setNewMessage('');
-    
-    // In production, you would save to database here
-    toast({
-      title: "Message sent",
-      description: activeTab === 'external' ? "Message sent via WhatsApp" : "Message sent",
-    });
+    } catch (error) {
+      console.error("Error sending message:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send message",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
-    <Card className="flex flex-col">
-      <CardHeader>
-        <CardTitle>Messages</CardTitle>
-        <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="internal" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="internal">Internal Messages</TabsTrigger>
-            <TabsTrigger value="external">WhatsApp</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </CardHeader>
-      <CardContent className="flex-1 p-0">
-        <div className="flex h-[calc(70vh-2rem)] border-t">
-          {/* Contacts Sidebar */}
-          <div className="w-1/3 border-r">
-            <div className="p-3 border-b">
-              <div className="relative">
-                <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <Input 
-                  placeholder={activeTab === 'internal' ? "Search contacts..." : "Search WhatsApp contacts..."}
-                  className="w-full pl-10"
-                />
-              </div>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5" />
+            Patient Communication
+          </CardTitle>
+          <CardDescription>
+            Send messages to your patients via internal system or WhatsApp
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Message Type</label>
+              <Select value={messageType} onValueChange={setMessageType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select message type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="internal">Internal Message</SelectItem>
+                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <ScrollArea className="h-[calc(70vh-6rem)]">
-              <div className="space-y-1 p-2">
-                {contacts.map(contact => (
-                  <div
-                    key={contact.id}
-                    onClick={() => {
-                      setSelectedChat(contact);
-                      fetchMessages(contact.id);
-                    }}
-                    className={`flex items-center space-x-3 p-2 rounded-lg cursor-pointer hover:bg-slate-100 ${
-                      selectedChat?.id === contact.id ? "bg-slate-100" : ""
-                    }`}
-                  >
-                    <Avatar>
-                      <AvatarFallback className={`
-                        ${contact.role === 'Doctor' ? 'bg-blue-500' :
-                         contact.role === 'Patient' ? 'bg-green-500' :
-                         contact.role === 'Admin' ? 'bg-purple-500' : 'bg-gray-500'} 
-                        text-white
-                      `}>
-                        {contact.name?.substring(0, 2) || "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center">
-                        <p className="font-medium truncate">{contact.name}</p>
-                        <span className="text-xs text-gray-500">
-                          {contact.lastSeen}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <p className="text-sm text-gray-500 truncate">
-                          {activeTab === 'internal' 
-                            ? contact.role + (contact.specialty ? ` • ${contact.specialty}` : '')
-                            : contact.phone}
-                        </p>
-                        {contact.hasUnread && (
-                          <Badge className="bg-blue-500 text-white">New</Badge>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Patient</label>
+              <Select value={selectedPatient} onValueChange={setSelectedPatient}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select patient" />
+                </SelectTrigger>
+                <SelectContent>
+                  {patients.map((patient) => (
+                    <SelectItem key={patient.id} value={patient.id}>
+                      {patient.full_name} {patient.phone && `(${patient.phone})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Chat Area */}
-          <div className="flex-1 flex flex-col">
-            {selectedChat ? (
+          <div>
+            <label className="text-sm font-medium mb-2 block">Message</label>
+            <Textarea
+              value={messageContent}
+              onChange={(e) => setMessageContent(e.target.value)}
+              placeholder="Type your message here..."
+              rows={4}
+            />
+          </div>
+
+          <Button onClick={sendMessage} className="w-full">
+            {messageType === "whatsapp" ? (
               <>
-                {/* Chat header */}
-                <div className="p-4 border-b flex justify-between items-center bg-slate-50">
-                  <div className="flex items-center space-x-3">
-                    <Avatar>
-                      <AvatarFallback className={`
-                        ${selectedChat.role === 'Doctor' ? 'bg-blue-500' :
-                         selectedChat.role === 'Patient' ? 'bg-green-500' :
-                         selectedChat.role === 'Admin' ? 'bg-purple-500' : 'bg-gray-500'} 
-                        text-white
-                      `}>
-                        {selectedChat.name?.substring(0, 2) || "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">{selectedChat.name}</p>
-                      <p className="text-sm text-gray-500">
-                        {activeTab === 'internal' 
-                          ? selectedChat.role + (selectedChat.specialty ? ` • ${selectedChat.specialty}` : '')
-                          : selectedChat.phone}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button variant="ghost" size="icon" className="rounded-full">
-                      <Phone className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="rounded-full">
-                      <Video className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="rounded-full">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Messages */}
-                <ScrollArea className="flex-1 p-4">
-                  <div className="space-y-4">
-                    {messages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={`flex ${
-                          message.sender === 'doctor' ? 'justify-end' : 'justify-start'
-                        }`}
-                      >
-                        <div
-                          className={`max-w-[80%] p-3 rounded-lg ${
-                            message.sender === 'doctor'
-                              ? 'bg-blue-500 text-white rounded-br-none'
-                              : 'bg-gray-200 text-gray-800 rounded-bl-none'
-                          }`}
-                        >
-                          <p>{message.content}</p>
-                          <p className={`text-xs mt-1 ${
-                            message.sender === 'doctor' ? 'text-blue-100' : 'text-gray-500'
-                          }`}>
-                            {new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-
-                {/* Message Input */}
-                <div className="p-4 border-t flex space-x-2">
-                  <Input
-                    placeholder={
-                      activeTab === 'external'
-                        ? `Type WhatsApp message to ${selectedChat.name}...`
-                        : `Type a message...`
-                    }
-                    className="flex-1"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleSendMessage();
-                      }
-                    }}
-                  />
-                  <Button 
-                    onClick={handleSendMessage}
-                    className="healthcare-gradient text-white"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open WhatsApp
               </>
             ) : (
-              <div className="h-full flex items-center justify-center">
-                <div className="text-center text-gray-500">
-                  <Send className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                  <p>Select a contact to start messaging</p>
+              <>
+                <Send className="h-4 w-4 mr-2" />
+                Send Message
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Messages</CardTitle>
+          <CardDescription>Your recent conversations with patients</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            {messages.map((message) => (
+              <div key={message.id} className="border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <Badge variant="outline">
+                    {message.message_type || "General"}
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">
+                    {new Date(message.created_at).toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-sm mb-2">{message.content}</p>
+                <div className="text-xs text-muted-foreground">
+                  From: {message.sender?.email || "Unknown"} → To: {message.recipient?.email || "Unknown"}
                 </div>
               </div>
+            ))}
+            {messages.length === 0 && (
+              <p className="text-center text-muted-foreground py-8">
+                No messages found
+              </p>
             )}
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 };

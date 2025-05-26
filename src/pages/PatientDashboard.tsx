@@ -1,11 +1,11 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, User, Bell, MessageSquare, FileText, Pill, Plus } from "lucide-react";
+import { Calendar, User, Bell, MessageSquare, FileText, Pill, Plus, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserStore } from "@/stores/userStore";
 import { AppointmentBooking } from "@/components/patient/AppointmentBooking";
 import { AppointmentsList } from "@/components/patient/AppointmentsList";
 import { PrescriptionsList } from "@/components/patient/PrescriptionsList";
@@ -13,54 +13,14 @@ import { PatientProfile } from "@/components/patient/PatientProfile";
 
 const PatientDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [user, setUser] = useState<any>(null);
-  const [patientName, setPatientName] = useState("");
   const navigate = useNavigate();
-
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate("/patient/auth");
-      return;
-    }
-
-    setUser(session.user);
-
-    // Get patient name
-    const { data: patientData } = await supabase
-      .from('patients')
-      .select('full_name')
-      .eq('user_id', session.user.id)
-      .single();
-
-    if (patientData) {
-      setPatientName(patientData.full_name);
-    }
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session) {
-        navigate("/patient/auth");
-      } else {
-        setUser(session.user);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  };
+  const { user, logout } = useUserStore();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate("/patient/auth");
+    logout();
+    navigate("/auth");
   };
-
-  if (!user) {
-    return <div>Loading...</div>;
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-teal-50">
@@ -83,10 +43,11 @@ const PatientDashboard = () => {
             </div>
             <div className="flex items-center space-x-3">
               <Button variant="outline" size="sm" onClick={handleLogout}>
+                <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
               </Button>
               <div className="h-8 w-8 bg-gradient-to-r from-blue-500 to-teal-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                {patientName?.substring(0, 1) || user?.email?.substring(0, 1) || "P"}
+                {user?.fullName?.substring(0, 1) || user?.email?.substring(0, 1) || "P"}
               </div>
             </div>
           </div>
@@ -123,7 +84,7 @@ const PatientDashboard = () => {
           {/* Dashboard Tab */}
           <TabsContent value="dashboard" className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-3xl font-bold text-slate-800">Welcome, {patientName || "Patient"}</h2>
+              <h2 className="text-3xl font-bold text-slate-800">Welcome, {user?.fullName || "Patient"}</h2>
               <Button 
                 className="healthcare-gradient text-white hover:opacity-90 transition-opacity"
                 onClick={() => setActiveTab("book")}
@@ -134,7 +95,7 @@ const PatientDashboard = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setActiveTab("appointments")}>
+              <Card className="cursor-pointer hover:shadow-lg transition-shadow hover:scale-105 transform duration-200" onClick={() => setActiveTab("appointments")}>
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <Calendar className="mr-2 h-5 w-5 text-blue-600" />
@@ -147,7 +108,7 @@ const PatientDashboard = () => {
                 </CardContent>
               </Card>
               
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setActiveTab("prescriptions")}>
+              <Card className="cursor-pointer hover:shadow-lg transition-shadow hover:scale-105 transform duration-200" onClick={() => setActiveTab("prescriptions")}>
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <Pill className="mr-2 h-5 w-5 text-blue-600" />
@@ -160,7 +121,7 @@ const PatientDashboard = () => {
                 </CardContent>
               </Card>
               
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setActiveTab("profile")}>
+              <Card className="cursor-pointer hover:shadow-lg transition-shadow hover:scale-105 transform duration-200" onClick={() => setActiveTab("profile")}>
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <User className="mr-2 h-5 w-5 text-blue-600" />
@@ -173,7 +134,7 @@ const PatientDashboard = () => {
                 </CardContent>
               </Card>
               
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setActiveTab("book")}>
+              <Card className="cursor-pointer hover:shadow-lg transition-shadow hover:scale-105 transform duration-200" onClick={() => setActiveTab("book")}>
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <Plus className="mr-2 h-5 w-5 text-blue-600" />

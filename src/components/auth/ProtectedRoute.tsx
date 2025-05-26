@@ -14,12 +14,6 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
   const { isAuthenticated, user } = useUserStore();
 
   if (!isAuthenticated) {
-    // Redirect to appropriate auth page based on required role
-    if (requiredRole === "patient") {
-      return <Navigate to="/patient/auth" replace />;
-    } else if (requiredRole === "super_admin") {
-      return <Navigate to="/super-admin/auth" replace />;
-    }
     return <Navigate to="/auth" replace />;
   }
 
@@ -35,12 +29,7 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
     } else if (user?.role === "doctor") {
       return <Navigate to="/" replace />;
     } else {
-      // If no valid role, redirect to appropriate auth
-      if (requiredRole === "patient") {
-        return <Navigate to="/patient/auth" replace />;
-      } else if (requiredRole === "super_admin") {
-        return <Navigate to="/super-admin/auth" replace />;
-      }
+      // If no valid role, redirect to auth
       return <Navigate to="/auth" replace />;
     }
   }

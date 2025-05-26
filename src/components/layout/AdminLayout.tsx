@@ -4,21 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Bell, Menu, X } from "lucide-react";
 import { useUserStore } from "@/stores/userStore";
-
-import {
-  Sidebar,
-  SidebarProvider,
-  SidebarContent,
-  SidebarHeader,
-  SidebarTrigger,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarFooter,
-} from "@/components/ui/sidebar";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 import { 
   Users, Settings, Calendar, FileText, 
@@ -27,7 +14,7 @@ import {
 } from "lucide-react";
 
 type AdminLayoutProps = {
-  children: React.ReactNode;
+  children: React.React.ReactNode;
   currentTab: string;
   setCurrentTab: (tab: string) => void;
 };
@@ -36,13 +23,40 @@ export const AdminLayout = ({ children, currentTab, setCurrentTab }: AdminLayout
   const { user, logout } = useUserStore();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { toast } = useToast();
 
-  const handleLogout = () => {
-    logout();
-    navigate("/auth");
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        toast({
+          title: "Error signing out",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Clear user store and redirect
+      logout();
+      navigate("/auth");
+      
+      toast({
+        title: "Logged out successfully",
+        description: "You have been signed out of your account.",
+      });
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        title: "Error signing out",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const menuItems = [
+    { id: "overview", label: "Dashboard Overview", icon: BarChart },
     { id: "users", label: "User Management", icon: Users },
     { id: "prescriptions", label: "Prescriptions", icon: Stethoscope },
     { id: "billing", label: "Billing", icon: CreditCard },
@@ -71,7 +85,7 @@ export const AdminLayout = ({ children, currentTab, setCurrentTab }: AdminLayout
                 onClick={toggleSidebar}
                 className="md:hidden"
               >
-                <Menu className="h-5 w-5" />
+                {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
               <div className="relative">
                 <div className="h-10 w-10 healthcare-gradient rounded-xl flex items-center justify-center">

@@ -6,6 +6,7 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { Prescriptions } from "@/components/admin/Prescriptions";
 import { Billing } from "@/components/admin/Billing";
+import { AdminMessaging } from "@/components/admin/Messaging";
 import { 
   Table,
   TableBody,
@@ -144,12 +145,12 @@ const AdminDashboard = () => {
         return <Prescriptions />;
       case "billing":
         return <Billing />;
+      case "messaging":
+        return <AdminMessaging />;
       case "patients":
         return <PlaceholderComponent title="Patient Records" />;
       case "inventory":
         return <PlaceholderComponent title="Inventory Management" />;
-      case "messaging":
-        return <PlaceholderComponent title="Messaging & Notifications" />;
       case "analytics":
         return <PlaceholderComponent title="Analytics & Reporting" />;
       case "branches":

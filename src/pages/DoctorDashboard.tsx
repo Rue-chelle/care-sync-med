@@ -1,5 +1,5 @@
-
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Users, Bell, MessageSquare, FileText, BarChart3, Settings, Menu, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useUserStore } from "@/stores/userStore";
 import { DoctorAppointments } from "@/components/doctor/DoctorAppointments";
 import { PatientRecords } from "@/components/doctor/PatientRecords";
 import { PrescriptionTool } from "@/components/doctor/PrescriptionTool";
@@ -37,6 +38,8 @@ const DoctorDashboard = () => {
     unreadMessages: 0
   });
   const { toast } = useToast();
+  const { logout } = useUserStore();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchDoctorProfile();
@@ -119,8 +122,19 @@ const DoctorDashboard = () => {
           description: error.message,
           variant: "destructive",
         });
+        return;
       }
+      
+      // Clear user store and redirect
+      logout();
+      navigate("/auth");
+      
+      toast({
+        title: "Logged out successfully",
+        description: "You have been signed out of your account.",
+      });
     } catch (error) {
+      console.error("Logout error:", error);
       toast({
         title: "Error signing out",
         description: "Something went wrong. Please try again.",

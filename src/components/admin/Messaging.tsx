@@ -9,9 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Phone, Video, MoreHorizontal, Search } from "lucide-react";
+import { UserCheck, UserPlus, Send, Phone, Video, MoreHorizontal } from "lucide-react";
 
-export const DoctorMessages = () => {
+export const AdminMessaging = () => {
   const [activeTab, setActiveTab] = useState("internal");
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -22,68 +22,63 @@ export const DoctorMessages = () => {
 
   useEffect(() => {
     fetchContacts();
-  }, [activeTab]);
+  }, []);
 
-  // Fetch contacts
+  // Fetch doctors, patients and admins as contacts
   const fetchContacts = async () => {
     try {
       setLoading(true);
       
-      // For internal chats - fetch patients and other healthcare providers
-      if (activeTab === 'internal') {
-        const { data: patients, error: patientsError } = await supabase
-          .from('patients')
-          .select('id, full_name, email')
-          .limit(8);
-        
-        if (patientsError) throw patientsError;
-        
-        // Mock some admin contacts
-        const adminContacts = [
-          { id: 'admin1', name: 'Admin Support', email: 'support@caresync.com', role: 'Admin' },
-          { id: 'admin2', name: 'Front Desk', email: 'frontdesk@caresync.com', role: 'Staff' },
-        ];
-        
-        // Mock some other doctors
-        const doctorContacts = [
-          { id: 'doc1', name: 'Dr. Sarah Johnson', role: 'Doctor', specialty: 'Cardiology' },
-          { id: 'doc2', name: 'Dr. Michael Chen', role: 'Doctor', specialty: 'Neurology' },
-        ];
-        
-        const formattedContacts = [
-          ...adminContacts,
-          ...doctorContacts,
-          ...patients.map(patient => ({
-            id: patient.id,
-            name: patient.full_name || 'Patient',
-            email: patient.email,
-            role: 'Patient',
-          }))
-        ];
-        
-        // Add some random last seen times and unread status
-        const contactsWithStatus = formattedContacts.map(contact => ({
-          ...contact,
-          lastSeen: Math.random() > 0.3 ? 'Online' : `${Math.floor(Math.random() * 5) + 1} hours ago`,
-          hasUnread: Math.random() > 0.7
-        }));
-        
-        setContacts(contactsWithStatus);
-      } 
-      // For external/WhatsApp - use mock data
-      else {
-        const whatsappContacts = [
-          { id: 'wp1', name: 'John Smith', phone: '+1234567891', role: 'Patient', platform: 'WhatsApp', lastSeen: '5 min ago', hasUnread: true },
-          { id: 'wp2', name: 'Emma Williams', phone: '+1234567892', role: 'Patient', platform: 'WhatsApp', lastSeen: '2 hours ago', hasUnread: false },
-          { id: 'wp3', name: 'Hospital Lab', phone: '+1234567893', role: 'Staff', platform: 'WhatsApp', lastSeen: 'Yesterday', hasUnread: false },
-          { id: 'wp4', name: 'Clinic Admin', phone: '+1234567894', role: 'Admin', platform: 'WhatsApp', lastSeen: 'Online', hasUnread: true }
-        ];
-        
-        setContacts(whatsappContacts);
+      // Fetch doctors
+      const { data: doctors, error: doctorsError } = await supabase
+        .from('doctors')
+        .select('id, full_name, email, specialization')
+        .limit(10);
+      
+      if (doctorsError) throw doctorsError;
+      
+      // Fetch patients
+      const { data: patients, error: patientsError } = await supabase
+        .from('patients')
+        .select('id, full_name, email')
+        .limit(10);
+      
+      if (patientsError) throw patientsError;
+      
+      // Combine and format
+      const formattedContacts = [
+        ...doctors.map(doctor => ({
+          id: doctor.id,
+          name: doctor.full_name,
+          email: doctor.email,
+          role: 'Doctor',
+          specialty: doctor.specialization,
+          lastSeen: 'Online',
+          hasUnread: Math.random() > 0.7,
+        })),
+        ...patients.map(patient => ({
+          id: patient.id,
+          name: patient.full_name || 'Patient',
+          email: patient.email,
+          role: 'Patient',
+          lastSeen: '2 hours ago',
+          hasUnread: Math.random() > 0.7,
+        }))
+      ];
+      
+      // Add some mock whatsapp contacts for the external tab
+      const externalContacts = [
+        { id: 'ext1', name: 'Dr. Williams', phone: '+1234567890', role: 'Doctor', platform: 'WhatsApp' },
+        { id: 'ext2', name: 'Sarah Patient', phone: '+1987654321', role: 'Patient', platform: 'WhatsApp' },
+        { id: 'ext3', name: 'Clinic Reception', phone: '+1122334455', role: 'Staff', platform: 'WhatsApp' }
+      ];
+      
+      setContacts(activeTab === 'internal' ? formattedContacts : externalContacts);
+      
+      if (formattedContacts.length > 0) {
+        setSelectedChat(formattedContacts[0]);
+        fetchMessages(formattedContacts[0].id);
       }
-      
-      // Select first contact by default
-      
     } catch (error) {
       console.error("Error fetching contacts:", error);
       toast({
@@ -96,46 +91,38 @@ export const DoctorMessages = () => {
     }
   };
 
-  useEffect(() => {
-    // When contacts change, select the first one if nothing is selected
-    if (contacts.length > 0 && !selectedChat) {
-      setSelectedChat(contacts[0]);
-      fetchMessages(contacts[0].id);
-    }
-  }, [contacts]);
-
   // Fetch messages for selected chat
   const fetchMessages = async (contactId: string) => {
-    // For demo, we'll use mock data
+    // For now we'll use mock data
     const mockMessages = [
       {
         id: 1,
-        sender: 'contact',
-        content: 'Hello Doctor, I have been experiencing severe headaches.',
+        sender: 'admin',
+        content: 'Hello, how can I help you today?',
         timestamp: new Date(Date.now() - 3600000).toISOString(),
       },
       {
         id: 2,
-        sender: 'doctor',
-        content: 'I understand. How long have you been having these headaches?',
+        sender: 'contact',
+        content: 'I need help with scheduling a new appointment',
         timestamp: new Date(Date.now() - 3500000).toISOString(),
       },
       {
         id: 3,
-        sender: 'contact',
-        content: 'For about a week now. They seem to be worse in the morning.',
+        sender: 'admin',
+        content: 'Of course, I can help with that. Which doctor would you like to see?',
         timestamp: new Date(Date.now() - 3400000).toISOString(),
       },
       {
         id: 4,
-        sender: 'doctor',
-        content: 'Have you taken any medication for the pain?',
+        sender: 'contact',
+        content: 'I was hoping to see Dr. Smith next Tuesday afternoon if possible.',
         timestamp: new Date(Date.now() - 3300000).toISOString(),
       },
       {
         id: 5,
-        sender: 'contact',
-        content: 'Just some over-the-counter painkillers, but they don\'t help much.',
+        sender: 'admin',
+        content: 'Let me check the availability for Dr. Smith on Tuesday.',
         timestamp: new Date(Date.now() - 3200000).toISOString(),
       }
     ];
@@ -149,7 +136,7 @@ export const DoctorMessages = () => {
     // Add message to UI immediately
     const newMsg = {
       id: Date.now(),
-      sender: 'doctor',
+      sender: 'admin',
       content: newMessage,
       timestamp: new Date().toISOString(),
     };
@@ -164,11 +151,19 @@ export const DoctorMessages = () => {
     });
   };
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    // Refresh contacts based on tab
+    setContacts([]);
+    setSelectedChat(null);
+    setTimeout(() => fetchContacts(), 100);
+  };
+
   return (
     <Card className="flex flex-col">
       <CardHeader>
-        <CardTitle>Messages</CardTitle>
-        <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="internal" className="w-full">
+        <CardTitle>Messaging System</CardTitle>
+        <Tabs value={activeTab} onValueChange={handleTabChange} defaultValue="internal" className="w-full">
           <TabsList className="grid w-full max-w-md grid-cols-2">
             <TabsTrigger value="internal">Internal Messages</TabsTrigger>
             <TabsTrigger value="external">WhatsApp</TabsTrigger>
@@ -180,13 +175,10 @@ export const DoctorMessages = () => {
           {/* Contacts Sidebar */}
           <div className="w-1/3 border-r">
             <div className="p-3 border-b">
-              <div className="relative">
-                <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <Input 
-                  placeholder={activeTab === 'internal' ? "Search contacts..." : "Search WhatsApp contacts..."}
-                  className="w-full pl-10"
-                />
-              </div>
+              <Input 
+                placeholder={activeTab === 'internal' ? "Search users..." : "Search contacts..."}
+                className="w-full"
+              />
             </div>
             <ScrollArea className="h-[calc(70vh-6rem)]">
               <div className="space-y-1 p-2">
@@ -202,12 +194,7 @@ export const DoctorMessages = () => {
                     }`}
                   >
                     <Avatar>
-                      <AvatarFallback className={`
-                        ${contact.role === 'Doctor' ? 'bg-blue-500' :
-                         contact.role === 'Patient' ? 'bg-green-500' :
-                         contact.role === 'Admin' ? 'bg-purple-500' : 'bg-gray-500'} 
-                        text-white
-                      `}>
+                      <AvatarFallback className="bg-primary text-primary-foreground">
                         {contact.name?.substring(0, 2) || "U"}
                       </AvatarFallback>
                     </Avatar>
@@ -220,9 +207,7 @@ export const DoctorMessages = () => {
                       </div>
                       <div className="flex justify-between items-center">
                         <p className="text-sm text-gray-500 truncate">
-                          {activeTab === 'internal' 
-                            ? contact.role + (contact.specialty ? ` • ${contact.specialty}` : '')
-                            : contact.phone}
+                          {activeTab === 'internal' ? contact.role : contact.platform}
                         </p>
                         {contact.hasUnread && (
                           <Badge className="bg-blue-500 text-white">New</Badge>
@@ -243,12 +228,7 @@ export const DoctorMessages = () => {
                 <div className="p-4 border-b flex justify-between items-center bg-slate-50">
                   <div className="flex items-center space-x-3">
                     <Avatar>
-                      <AvatarFallback className={`
-                        ${selectedChat.role === 'Doctor' ? 'bg-blue-500' :
-                         selectedChat.role === 'Patient' ? 'bg-green-500' :
-                         selectedChat.role === 'Admin' ? 'bg-purple-500' : 'bg-gray-500'} 
-                        text-white
-                      `}>
+                      <AvatarFallback className="bg-primary text-primary-foreground">
                         {selectedChat.name?.substring(0, 2) || "U"}
                       </AvatarFallback>
                     </Avatar>
@@ -256,7 +236,7 @@ export const DoctorMessages = () => {
                       <p className="font-medium">{selectedChat.name}</p>
                       <p className="text-sm text-gray-500">
                         {activeTab === 'internal' 
-                          ? selectedChat.role + (selectedChat.specialty ? ` • ${selectedChat.specialty}` : '')
+                          ? `${selectedChat.role}${selectedChat.specialty ? ` • ${selectedChat.specialty}` : ''}` 
                           : selectedChat.phone}
                       </p>
                     </div>
@@ -281,19 +261,19 @@ export const DoctorMessages = () => {
                       <div
                         key={message.id}
                         className={`flex ${
-                          message.sender === 'doctor' ? 'justify-end' : 'justify-start'
+                          message.sender === 'admin' ? 'justify-end' : 'justify-start'
                         }`}
                       >
                         <div
                           className={`max-w-[80%] p-3 rounded-lg ${
-                            message.sender === 'doctor'
+                            message.sender === 'admin'
                               ? 'bg-blue-500 text-white rounded-br-none'
                               : 'bg-gray-200 text-gray-800 rounded-bl-none'
                           }`}
                         >
                           <p>{message.content}</p>
                           <p className={`text-xs mt-1 ${
-                            message.sender === 'doctor' ? 'text-blue-100' : 'text-gray-500'
+                            message.sender === 'admin' ? 'text-blue-100' : 'text-gray-500'
                           }`}>
                             {new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                           </p>
@@ -331,7 +311,7 @@ export const DoctorMessages = () => {
             ) : (
               <div className="h-full flex items-center justify-center">
                 <div className="text-center text-gray-500">
-                  <Send className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <UserCheck className="h-12 w-12 mx-auto mb-4 text-gray-400" />
                   <p>Select a contact to start messaging</p>
                 </div>
               </div>

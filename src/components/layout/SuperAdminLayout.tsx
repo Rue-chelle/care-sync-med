@@ -18,7 +18,7 @@ export const SuperAdminLayout = ({ children, currentTab, setCurrentTab }: SuperA
 
   const handleLogout = () => {
     logout();
-    navigate("/super-admin/auth");
+    navigate("/auth");
   };
 
   const menuItems = [
@@ -37,34 +37,35 @@ export const SuperAdminLayout = ({ children, currentTab, setCurrentTab }: SuperA
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Header */}
       <header className="bg-black/30 backdrop-blur-sm border-b border-purple-500/20 sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4">
+        <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 sm:space-x-3">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="md:hidden text-white"
+                className="md:hidden text-white h-8 w-8 sm:h-10 sm:w-10"
               >
-                <Menu className="h-5 w-5" />
+                <Menu className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
               <div className="relative">
-                <div className="h-10 w-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl flex items-center justify-center">
-                  <Shield className="h-6 w-6 text-white" />
+                <div className="h-8 w-8 sm:h-10 sm:w-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl flex items-center justify-center">
+                  <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                 </div>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              <div className="hidden xs:block">
+                <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                   CareSync Super Admin
                 </h1>
-                <p className="text-sm text-purple-300">Developer Access Panel</p>
+                <p className="text-xs sm:text-sm text-purple-300">Developer Access Panel</p>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <Button variant="outline" size="sm" onClick={handleLogout} className="border-purple-500 text-purple-300">
-                Sign Out
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <Button variant="outline" size="sm" onClick={handleLogout} className="border-purple-500 text-purple-300 text-xs sm:text-sm px-2 sm:px-4">
+                <span className="hidden xs:inline">Sign Out</span>
+                <span className="xs:hidden">Out</span>
               </Button>
-              <div className="h-8 w-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+              <div className="h-6 w-6 sm:h-8 sm:w-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
                 {user?.fullName?.substring(0, 2) || "SA"}
               </div>
             </div>
@@ -122,9 +123,9 @@ export const SuperAdminLayout = ({ children, currentTab, setCurrentTab }: SuperA
         </div>
         
         {/* Main content area */}
-        <div className="flex-1 p-6">
-          <div className="mb-6">
-            <h2 className="text-3xl font-bold text-white">
+        <div className="flex-1 p-4 sm:p-6">
+          <div className="mb-4 sm:mb-6">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white">
               {menuItems.find(item => item.id === currentTab)?.label || "Dashboard"}
             </h2>
           </div>

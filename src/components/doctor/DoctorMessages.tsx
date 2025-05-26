@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { MessageSquare, Send, ExternalLink } from "lucide-react";
+import { useUserStore } from "@/stores/userStore";
 
 export const DoctorMessages = () => {
   const [patients, setPatients] = useState<any[]>([]);
@@ -17,6 +18,7 @@ export const DoctorMessages = () => {
   const [messageContent, setMessageContent] = useState("");
   const [messageType, setMessageType] = useState("internal");
   const { toast } = useToast();
+  const { user } = useUserStore();
 
   useEffect(() => {
     fetchPatients();
@@ -88,6 +90,7 @@ export const DoctorMessages = () => {
         const { error } = await supabase
           .from("messages")
           .insert({
+            sender_id: user?.id,
             recipient_id: selectedPatient,
             content: messageContent,
             message_type: "doctor_patient",

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,48 +7,35 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { MessageSquare, Send, Phone, ExternalLink } from "lucide-react";
+import { MessageSquare, Send, ExternalLink } from "lucide-react";
+import { useUserStore } from "@/stores/userStore";
 
 export const AdminMessaging = () => {
-  const [patients, setPatients] = useState<any[]>([]);
-  const [doctors, setDoctors] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
-  const [selectedRecipient, setSelectedRecipient] = useState("");
+  const [selectedUser, setSelectedUser] = useState("");
   const [messageContent, setMessageContent] = useState("");
   const [messageType, setMessageType] = useState("internal");
   const { toast } = useToast();
+  const { user } = useUserStore();
 
   useEffect(() => {
-    fetchPatients();
-    fetchDoctors();
+    fetchUsers();
     fetchMessages();
   }, []);
 
-  const fetchPatients = async () => {
+  const fetchUsers = async () => {
     try {
       const { data, error } = await supabase
-        .from("patients")
-        .select("id, full_name, phone")
-        .limit(20);
+        .from("users")
+        .select("id, email, full_name, role")
+        .neq("role", "admin")
+        .limit(50);
 
       if (error) throw error;
-      setPatients(data || []);
+      setUsers(data || []);
     } catch (error) {
-      console.error("Error fetching patients:", error);
-    }
-  };
-
-  const fetchDoctors = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("doctors")
-        .select("id, full_name, email")
-        .limit(20);
-
-      if (error) throw error;
-      setDoctors(data || []);
-    } catch (error) {
-      console.error("Error fetching doctors:", error);
+      console.error("Error fetching users:", error);
     }
   };
 
@@ -59,8 +45,8 @@ export const AdminMessaging = () => {
         .from("messages")
         .select(`
           *,
-          sender:users!messages_sender_id_fkey(email),
-          recipient:users!messages_recipient_id_fkey(email)
+          sender:users!messages_sender_id_fkey(email, full_name),
+          recipient:users!messages_recipient_id_fkey(email, full_name)
         `)
         .order("created_at", { ascending: false })
         .limit(50);
@@ -73,10 +59,10 @@ export const AdminMessaging = () => {
   };
 
   const sendMessage = async () => {
-    if (!selectedRecipient || !messageContent.trim()) {
+    if (!selectedUser || !messageContent.trim()) {
       toast({
         title: "Error",
-        description: "Please select a recipient and enter a message",
+        description: "Please select a user and enter a message",
         variant: "destructive",
       });
       return;
@@ -84,23 +70,30 @@ export const AdminMessaging = () => {
 
     try {
       if (messageType === "whatsapp") {
-        // Format WhatsApp URL
-        const phone = selectedRecipient;
-        const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(messageContent)}`;
-        window.open(whatsappUrl, "_blank");
-        
-        toast({
-          title: "WhatsApp opened",
-          description: "Continue the conversation in WhatsApp",
-        });
+        const selectedUserData = users.find(u => u.id === selectedUser);
+        if (selectedUserData?.phone) {
+          const whatsappUrl = `https://wa.me/${selectedUserData.phone}?text=${encodeURIComponent(messageContent)}`;
+          window.open(whatsappUrl, "_blank");
+          
+          toast({
+            title: "WhatsApp opened",
+            description: "Continue the conversation in WhatsApp",
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "User phone number not available",
+            variant: "destructive",
+          });
+        }
       } else {
-        // Send internal message
         const { error } = await supabase
           .from("messages")
           .insert({
-            recipient_id: selectedRecipient,
+            sender_id: user?.id,
+            recipient_id: selectedUser,
             content: messageContent,
-            message_type: "admin_broadcast",
+            message_type: "admin_message",
             subject: "Admin Message"
           });
 
@@ -130,10 +123,10 @@ export const AdminMessaging = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
-            Admin Messaging System
+            User Communication
           </CardTitle>
           <CardDescription>
-            Send messages to patients and doctors via internal system or WhatsApp
+            Send messages to doctors and patients via internal system or WhatsApp
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -152,34 +145,17 @@ export const AdminMessaging = () => {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 block">
-                {messageType === "whatsapp" ? "Patient Phone" : "Recipient"}
-              </label>
-              <Select value={selectedRecipient} onValueChange={setSelectedRecipient}>
+              <label className="text-sm font-medium mb-2 block">User</label>
+              <Select value={selectedUser} onValueChange={setSelectedUser}>
                 <SelectTrigger>
-                  <SelectValue placeholder={messageType === "whatsapp" ? "Select patient" : "Select recipient"} />
+                  <SelectValue placeholder="Select user" />
                 </SelectTrigger>
                 <SelectContent>
-                  {messageType === "whatsapp" ? (
-                    patients.map((patient) => (
-                      <SelectItem key={patient.id} value={patient.phone || ""}>
-                        {patient.full_name} {patient.phone && `(${patient.phone})`}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <>
-                      {patients.map((patient) => (
-                        <SelectItem key={patient.id} value={patient.id}>
-                          {patient.full_name} (Patient)
-                        </SelectItem>
-                      ))}
-                      {doctors.map((doctor) => (
-                        <SelectItem key={doctor.id} value={doctor.id}>
-                          {doctor.full_name} (Doctor)
-                        </SelectItem>
-                      ))}
-                    </>
-                  )}
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.full_name || user.email} ({user.role})
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -214,7 +190,7 @@ export const AdminMessaging = () => {
       <Card>
         <CardHeader>
           <CardTitle>Recent Messages</CardTitle>
-          <CardDescription>Latest internal messages in the system</CardDescription>
+          <CardDescription>Recent conversations in the system</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4 max-h-96 overflow-y-auto">
@@ -230,7 +206,8 @@ export const AdminMessaging = () => {
                 </div>
                 <p className="text-sm mb-2">{message.content}</p>
                 <div className="text-xs text-muted-foreground">
-                  From: {message.sender?.email || "Unknown"} → To: {message.recipient?.email || "Unknown"}
+                  From: {message.sender?.full_name || message.sender?.email || "Unknown"} → 
+                  To: {message.recipient?.full_name || message.recipient?.email || "Unknown"}
                 </div>
               </div>
             ))}

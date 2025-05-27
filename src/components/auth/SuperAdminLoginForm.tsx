@@ -29,10 +29,10 @@ export const SuperAdminLoginForm = () => {
 
       if (error) {
         // If Supabase fails, try mock authentication for demo purposes
-        if (email === "superadmin@caresync.com" && password === "superadmin123") {
+        if (email === "superadmin@aloramedapp.com" && password === "superadmin123") {
           login({
             id: "mock-super-admin",
-            email: "superadmin@caresync.com",
+            email: "superadmin@aloramedapp.com",
             fullName: "Super Administrator",
             role: "super_admin"
           });
@@ -101,7 +101,7 @@ export const SuperAdminLoginForm = () => {
         <Input 
           id="email" 
           type="email" 
-          placeholder="superadmin@caresync.com" 
+          placeholder="superadmin@aloramedapp.com" 
           value={email} 
           onChange={(e) => setEmail(e.target.value)} 
           required 
@@ -127,7 +127,7 @@ export const SuperAdminLoginForm = () => {
       </Button>
       <div className="text-xs text-gray-500 text-center mt-4">
         <p>Demo credentials:</p>
-        <p>Super Admin: superadmin@caresync.com / superadmin123</p>
+        <p>Super Admin: superadmin@aloramedapp.com / superadmin123</p>
       </div>
     </form>
   );

@@ -74,7 +74,7 @@ export const PatientRegisterForm = () => {
 
         toast({
           title: "Registration successful",
-          description: `Welcome to CareSync, ${fullName}!`,
+          description: `Welcome to AloraMed, ${fullName}!`,
         });
 
         navigate("/patient");

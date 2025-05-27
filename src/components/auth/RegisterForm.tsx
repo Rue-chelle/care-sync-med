@@ -84,7 +84,7 @@ export const RegisterForm = () => {
         
         toast({
           title: "Registration successful",
-          description: `Welcome to CareSync, ${fullName}!`,
+          description: `Welcome to AloraMed, ${fullName}!`,
         });
 
         // Redirect based on role

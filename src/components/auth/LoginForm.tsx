@@ -30,8 +30,8 @@ export const LoginForm = () => {
       if (error) {
         // If Supabase fails, try mock authentication for demo purposes
         const mockUsers = [
-          { email: "admin@caresync.com", password: "admin123", role: "admin" as const },
-          { email: "doctor@caresync.com", password: "doctor123", role: "doctor" as const }
+          { email: "admin@aloramedapp.com", password: "admin123", role: "admin" as const },
+          { email: "doctor@aloramedapp.com", password: "doctor123", role: "doctor" as const }
         ];
 
         const mockUser = mockUsers.find(user => user.email === email && user.password === password);
@@ -158,8 +158,8 @@ export const LoginForm = () => {
       </Button>
       <div className="text-xs text-gray-500 text-center mt-4">
         <p>Demo credentials:</p>
-        <p>Admin: admin@caresync.com / admin123</p>
-        <p>Doctor: doctor@caresync.com / doctor123</p>
+        <p>Admin: admin@aloramedapp.com / admin123</p>
+        <p>Doctor: doctor@aloramedapp.com / doctor123</p>
       </div>
     </form>
   );

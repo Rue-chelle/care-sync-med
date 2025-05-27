@@ -133,10 +133,10 @@ const UnifiedAuth = () => {
       if (error) {
         // If Supabase fails, try mock authentication for demo purposes
         const mockUsers = [
-          { email: "patient@caresync.com", password: "patient123", role: "patient" as const, name: "John Patient" },
-          { email: "doctor@caresync.com", password: "doctor123", role: "doctor" as const, name: "Dr. Sarah Wilson" },
-          { email: "admin@caresync.com", password: "admin123", role: "admin" as const, name: "Admin User" },
-          { email: "superadmin@caresync.com", password: "superadmin123", role: "super_admin" as const, name: "Super Administrator" }
+          { email: "patient@aloramedapp.com", password: "password123", role: "patient" as const, name: "John Patient" },
+          { email: "doctor@aloramedapp.com", password: "password123", role: "doctor" as const, name: "Dr. Sarah Wilson" },
+          { email: "admin@aloramedapp.com", password: "password123", role: "admin" as const, name: "Admin User" },
+          { email: "superadmin@aloramedapp.com", password: "password123", role: "super_admin" as const, name: "Super Administrator" }
         ];
 
         const mockUser = mockUsers.find(user => user.email === email && user.password === password);
@@ -224,7 +224,7 @@ const UnifiedAuth = () => {
 
         toast({
           title: "Registration successful",
-          description: `Welcome to CareSync, ${fullName}!`,
+          description: `Welcome to AloraMed, ${fullName}!`,
         });
 
         navigate("/patient");
@@ -241,10 +241,10 @@ const UnifiedAuth = () => {
   };
 
   const demoCredentials = [
-    { role: "Patient", email: "patient@caresync.com", password: "patient123", icon: User, color: "text-blue-600" },
-    { role: "Doctor", email: "doctor@caresync.com", password: "doctor123", icon: Stethoscope, color: "text-green-600" },
-    { role: "Admin", email: "admin@caresync.com", password: "admin123", icon: Shield, color: "text-orange-600" },
-    { role: "Super Admin", email: "superadmin@caresync.com", password: "superadmin123", icon: Crown, color: "text-purple-600" }
+    { role: "Patient", email: "patient@aloramedapp.com", password: "password123", icon: User, color: "text-blue-600" },
+    { role: "Doctor", email: "doctor@aloramedapp.com", password: "password123", icon: Stethoscope, color: "text-green-600" },
+    { role: "Admin", email: "admin@aloramedapp.com", password: "password123", icon: Shield, color: "text-orange-600" },
+    { role: "Super Admin", email: "superadmin@aloramedapp.com", password: "password123", icon: Crown, color: "text-purple-600" }
   ];
 
   const quickLogin = (email: string, password: string) => {
@@ -260,11 +260,11 @@ const UnifiedAuth = () => {
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <div className="h-16 w-16 healthcare-gradient rounded-2xl flex items-center justify-center shadow-lg">
-              <div className="h-8 w-8 text-white font-bold text-xl">CS</div>
+              <div className="h-8 w-8 text-white font-bold text-xl">AM</div>
             </div>
           </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent mb-2">
-            CareSync
+            AloraMed
           </h1>
           <p className="text-lg text-slate-600">Healthcare Management System</p>
         </div>

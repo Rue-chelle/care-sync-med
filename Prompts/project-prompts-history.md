@@ -1,8 +1,8 @@
 
-# CareSyncMed Project - Prompt History
+# AloraMed Project - Prompt History
 
 ## Project Overview
-CareSyncMed is a smart clinic management system built with React, TypeScript, Tailwind CSS, and Supabase integration. The system provides multi-role access for patients, doctors, admins, and super admins.
+AloraMed is a smart clinic management system built with React, TypeScript, Tailwind CSS, and Supabase integration. The system provides multi-role access for patients, doctors, admins, and super admins.
 
 ## Development Prompts History
 
@@ -65,6 +65,8 @@ CareSyncMed is a smart clinic management system built with React, TypeScript, Ta
     - Inventory Management
     - Patient Records
 37. **Responsive Headers**: Make all user dashboard headers responsive for different screen sizes including mobile phones
+38. **Project Documentation**: Create comprehensive prompts history file documenting all development requests
+39. **Rebranding**: Change project name from CareSync to AloraMed across all files
 
 ## Technical Stack
 - **Frontend**: React 18, TypeScript, Vite

@@ -55,7 +55,7 @@ export const SuperAdminLayout = ({ children, currentTab, setCurrentTab }: SuperA
               </div>
               <div className="hidden xs:block">
                 <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  CareSync Super Admin
+                  AloraMed Super Admin
                 </h1>
                 <p className="text-xs sm:text-sm text-purple-300">Developer Access Panel</p>
               </div>

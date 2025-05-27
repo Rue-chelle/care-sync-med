@@ -32,7 +32,7 @@ const Index = () => {
               </div>
               <div>
                 <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
-                  CareSync
+                  AloraMed
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-600">Healthcare Reminder System</p>
               </div>

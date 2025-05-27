@@ -1,7 +1,7 @@
 
-# 🏥 CareSyncMed — Smart Clinic Management System
+# 🏥 AloraMed — Smart Clinic Management System
 
-CareSyncMed is a modern, web-based clinic booking and health records system designed to streamline patient care, reduce missed follow-ups, and digitize clinic workflows for doctors, patients, and administrators.
+AloraMed is a modern, web-based clinic booking and health records system designed to streamline patient care, reduce missed follow-ups, and digitize clinic workflows for doctors, patients, and administrators.
 
 Built using **Lovable** (React-based UI builder) and **Supabase** (backend-as-a-service), the system provides secure authentication, real-time scheduling, role-based access, and a fully functional Super Admin control panel.
 
@@ -16,7 +16,7 @@ Explore the full app here:
 
 ## 📌 Key Features
 
-> Features designed in collaboration with ChatGPT’s recommendations for real-world clinic efficiency:
+> Features designed in collaboration with ChatGPT's recommendations for real-world clinic efficiency:
 
 ### 👥 Multi-Role Access  
 - **Patient**: Book appointments, view prescriptions, access medical history  
@@ -61,12 +61,12 @@ Explore the full app here:
 
 Test the platform using demo roles:
 
-- **Patient**: `patient@caresync.com` / `password123`  
+- **Patient**: `patient@aloramedapp.com` / `password123`  
 - **Doctor**:  
-`doctor@caresync.com` / `password123`  
+`doctor@aloramedapp.com` / `password123`  
 - **Admin**:
-`admin@caresync.com` / `password123`  
-- **Super Admin**: `superadmin@caresync.com` / `password123`
+`admin@aloramedapp.com` / `password123`  
+- **Super Admin**: `superadmin@aloramedapp.com` / `password123`
 
 ---
 
@@ -85,10 +85,10 @@ Test the platform using demo roles:
 1. **Clone this repository**
 ```bash
 # Step 1: Clone the repository using the project's Git URL.
-git clone https://github.com/Rue-chelle/care-sync-med.git
+git clone https://github.com/Rue-chelle/aloramedapp.git
 
 # Step 2: Navigate to the project directory.
-cd care-sync-med
+cd aloramedapp
 
 # Step 3: Install the necessary dependencies.
 npm i

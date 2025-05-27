@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -170,11 +171,11 @@ const DoctorDashboard = () => {
                 {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
               <div className="h-10 w-10 healthcare-gradient rounded-xl flex items-center justify-center">
-                <div className="h-6 w-6 text-white font-bold">CS</div>
+                <div className="h-6 w-6 text-white font-bold">AM</div>
               </div>
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
-                  CareSync Doctor
+                  AloraMed Doctor
                 </h1>
                 <p className="text-sm text-slate-600">
                   Welcome, Dr. {doctorProfile?.full_name || 'Doctor'}

@@ -31,12 +31,12 @@ const PatientDashboard = () => {
             <div className="flex items-center space-x-3">
               <div className="relative">
                 <div className="h-10 w-10 healthcare-gradient rounded-xl flex items-center justify-center">
-                  <div className="h-6 w-6 text-white">CS</div>
+                  <div className="h-6 w-6 text-white font-bold">AM</div>
                 </div>
               </div>
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
-                  CareSync
+                  AloraMed
                 </h1>
                 <p className="text-sm text-slate-600">Patient Portal</p>
               </div>

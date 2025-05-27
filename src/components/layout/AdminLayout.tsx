@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -88,12 +87,12 @@ export const AdminLayout = ({ children, currentTab, setCurrentTab }: AdminLayout
               </Button>
               <div className="relative">
                 <div className="h-8 w-8 sm:h-10 sm:w-10 healthcare-gradient rounded-xl flex items-center justify-center">
-                  <div className="h-5 w-5 sm:h-6 sm:w-6 text-white text-xs sm:text-sm font-bold">CS</div>
+                  <div className="h-5 w-5 sm:h-6 sm:w-6 text-white text-xs sm:text-sm font-bold">AM</div>
                 </div>
               </div>
               <div className="hidden xs:block">
                 <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
-                  CareSync
+                  AloraMed
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-600">Admin Portal</p>
               </div>

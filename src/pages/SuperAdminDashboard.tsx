@@ -14,6 +14,7 @@ import { BroadcastMessages } from "@/components/super-admin/BroadcastMessages";
 import { AuditLogs } from "@/components/super-admin/AuditLogs";
 import { SubscriptionManagement } from "@/components/super-admin/SubscriptionManagement";
 import { DashboardSidebar } from "@/components/shared/DashboardSidebar";
+import { NotificationPanel } from "@/components/shared/NotificationPanel";
 import { 
   BarChart3, 
   Building, 
@@ -30,6 +31,7 @@ import {
 
 const SuperAdminDashboard = () => {
   const [currentTab, setCurrentTab] = useState("overview");
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const navigate = useNavigate();
   const { logout, user } = useUserStore();
 
@@ -94,7 +96,11 @@ const SuperAdminDashboard = () => {
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setIsNotificationOpen(true)}
+              >
                 <Bell className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">Notifications</span>
               </Button>
@@ -121,6 +127,11 @@ const SuperAdminDashboard = () => {
           {renderContent()}
         </main>
       </div>
+
+      <NotificationPanel 
+        isOpen={isNotificationOpen}
+        onClose={() => setIsNotificationOpen(false)}
+      />
     </div>
   );
 };

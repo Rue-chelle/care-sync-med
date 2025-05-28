@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Download, DollarSign, FileText, TrendingUp, Calendar } from "lucide-react";
+import { Search, Download, DollarSign, FileText, TrendingUp, Calendar, Eye } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -20,12 +20,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { InvoiceDetailsModal } from "./InvoiceDetailsModal";
+import { exportToPDF } from "@/utils/pdfExport";
+import { useToast } from "@/hooks/use-toast";
 
 export const Billing = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { toast } = useToast();
 
-  const invoices = [
+  const [invoices, setInvoices] = useState([
     {
       id: "INV-001",
       patient: "Sarah Wong",
@@ -66,7 +72,7 @@ export const Billing = () => {
       status: "Paid",
       paymentMethod: "Insurance"
     },
-  ];
+  ]);
 
   const filteredInvoices = invoices.filter(invoice => {
     const matchesSearch = 
@@ -90,6 +96,37 @@ export const Billing = () => {
   const pendingAmount = invoices.filter(inv => inv.status === "Pending").reduce((sum, inv) => sum + inv.amount, 0);
   const overdueAmount = invoices.filter(inv => inv.status === "Overdue").reduce((sum, inv) => sum + inv.amount, 0);
 
+  const handleViewInvoice = (invoice: any) => {
+    setSelectedInvoice(invoice);
+    setIsModalOpen(true);
+  };
+
+  const handleMarkPaid = (invoiceId: string) => {
+    setInvoices(prev => 
+      prev.map(invoice => 
+        invoice.id === invoiceId 
+          ? { ...invoice, status: "Paid", paymentMethod: "Manual Entry" }
+          : invoice
+      )
+    );
+    
+    toast({
+      title: "Payment Recorded",
+      description: `Invoice ${invoiceId} has been marked as paid.`,
+    });
+  };
+
+  const handleGenerateInvoice = () => {
+    toast({
+      title: "Invoice Generated",
+      description: "New invoice has been created successfully.",
+    });
+  };
+
+  const handleExportReport = () => {
+    exportToPDF("Billing and Payment Report", filteredInvoices, "billing_report");
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -99,11 +136,11 @@ export const Billing = () => {
           <p className="text-sm text-gray-600">Manage invoices and track payments</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleGenerateInvoice}>
             <FileText className="h-4 w-4 mr-2" />
             Generate Invoice
           </Button>
-          <Button className="healthcare-gradient text-white">
+          <Button className="healthcare-gradient text-white" onClick={handleExportReport}>
             <Download className="h-4 w-4 mr-2" />
             Export Report
           </Button>
@@ -228,11 +265,20 @@ export const Billing = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleViewInvoice(invoice)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
                         View
                       </Button>
                       {invoice.status !== "Paid" && (
-                        <Button size="sm" className="healthcare-gradient text-white">
+                        <Button 
+                          size="sm" 
+                          className="healthcare-gradient text-white"
+                          onClick={() => handleMarkPaid(invoice.id)}
+                        >
                           Mark Paid
                         </Button>
                       )}
@@ -244,6 +290,12 @@ export const Billing = () => {
           </Table>
         </CardContent>
       </Card>
+
+      <InvoiceDetailsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        invoice={selectedInvoice}
+      />
     </div>
   );
 };

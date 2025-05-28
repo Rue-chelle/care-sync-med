@@ -20,10 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PrescriptionDetailsModal } from "./PrescriptionDetailsModal";
+import { exportToPDF } from "@/utils/pdfExport";
 
 export const Prescriptions = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedPrescription, setSelectedPrescription] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const prescriptions = [
     {
@@ -90,6 +94,15 @@ export const Prescriptions = () => {
     }
   };
 
+  const handleViewPrescription = (prescription: any) => {
+    setSelectedPrescription(prescription);
+    setIsModalOpen(true);
+  };
+
+  const handleExportReport = () => {
+    exportToPDF("Prescription Monitoring Report", filteredPrescriptions, "prescription_report");
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -98,7 +111,7 @@ export const Prescriptions = () => {
           <h3 className="text-lg font-semibold text-gray-900">Prescription Monitoring</h3>
           <p className="text-sm text-gray-600">Monitor all prescriptions and flagged medications</p>
         </div>
-        <Button className="healthcare-gradient text-white">
+        <Button className="healthcare-gradient text-white" onClick={handleExportReport}>
           <Download className="h-4 w-4 mr-2" />
           Export Report
         </Button>
@@ -236,7 +249,11 @@ export const Prescriptions = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleViewPrescription(prescription)}
+                      >
                         <Eye className="h-4 w-4 mr-1" />
                         View
                       </Button>
@@ -248,6 +265,12 @@ export const Prescriptions = () => {
           </Table>
         </CardContent>
       </Card>
+
+      <PrescriptionDetailsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        prescription={selectedPrescription}
+      />
     </div>
   );
 };

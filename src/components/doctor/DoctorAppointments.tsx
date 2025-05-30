@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import { Calendar, Clock, User, Phone, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { ScheduleAppointmentModal } from "@/components/doctor/ScheduleAppointmentModal";
 
 interface Appointment {
   id: string;
@@ -33,6 +33,7 @@ export const DoctorAppointments = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("");
   const [searchFilter, setSearchFilter] = useState("");
+  const [openModal, setOpenModal] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -144,6 +145,73 @@ export const DoctorAppointments = () => {
     }
   };
 
+  const handleScheduleAppointment = async (form: {
+    patientName: string;
+    date: string;
+    time: string;
+    reason: string;
+  }) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get doctor id
+      const { data: doctorData } = await supabase
+        .from('doctors')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!doctorData) return;
+
+      // Find patient by name (adjust as needed for your schema)
+      const { data: patientData } = await supabase
+        .from('patients')
+        .select('id')
+        .ilike('full_name', form.patientName)
+        .single();
+
+      if (!patientData) {
+        toast({
+          title: "Error",
+          description: "Patient not found.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Insert new appointment
+      const { error } = await supabase.from('appointments').insert({
+        doctor_id: doctorData.id,
+        patient_id: patientData.id,
+        appointment_date: form.date,
+        appointment_time: form.time,
+        reason: form.reason,
+        status: "scheduled",
+        consultation_type: "In-person",
+        notes: "",
+      });
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to schedule appointment.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "Appointment scheduled.",
+      });
+
+      fetchAppointments(); // Refresh list
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-green-100 text-green-800';
@@ -162,7 +230,10 @@ export const DoctorAppointments = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold text-slate-800">Appointment Management</h2>
-        <Button className="healthcare-gradient text-white">
+        <Button
+          className="healthcare-gradient text-white"
+          onClick={() => setOpenModal(true)}
+        >
           <Calendar className="h-4 w-4 mr-2" />
           Schedule New
         </Button>
@@ -327,6 +398,14 @@ export const DoctorAppointments = () => {
           ))
         )}
       </div>
+
+      {/* Schedule Appointment Modal */}
+      {openModal && (
+        <ScheduleAppointmentModal
+          onClose={() => setOpenModal(false)}
+          onSchedule={handleScheduleAppointment}
+        />
+      )}
     </div>
   );
 };

@@ -38,7 +38,16 @@ export const DoctorNotifications = () => {
         .limit(10);
 
       if (error) throw error;
-      setNotifications(data || []);
+      
+      // Type-safe conversion of the data
+      const typedNotifications: Notification[] = (data || []).map(item => ({
+        ...item,
+        type: ['info', 'warning', 'success', 'error'].includes(item.type) 
+          ? item.type as 'info' | 'warning' | 'success' | 'error'
+          : 'info'
+      }));
+      
+      setNotifications(typedNotifications);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {

@@ -99,8 +99,56 @@ export const Prescriptions = () => {
     setIsModalOpen(true);
   };
 
+  const handleEditPrescription = (prescriptionId: string) => {
+    console.log('Edit prescription:', prescriptionId);
+    // TODO: Implement edit functionality
+  };
+
   const handleExportReport = () => {
-    exportToPDF("Prescription Monitoring Report", filteredPrescriptions, "prescription_report");
+    // Create a temporary element with the prescription data
+    const reportElement = document.createElement('div');
+    reportElement.innerHTML = `
+      <div style="padding: 20px; font-family: Arial, sans-serif;">
+        <h1>Prescription Monitoring Report</h1>
+        <div style="margin: 20px 0;">
+          <h3>Summary</h3>
+          <p>Total Prescriptions: ${prescriptions.length}</p>
+          <p>Active: ${prescriptions.filter(p => p.status === 'Active').length}</p>
+          <p>Flagged: ${prescriptions.filter(p => p.flagged).length}</p>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+          <thead>
+            <tr style="background-color: #f5f5f5;">
+              <th style="border: 1px solid #ddd; padding: 8px;">ID</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Patient</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Medication</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Status</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Flagged</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filteredPrescriptions.map(prescription => `
+              <tr>
+                <td style="border: 1px solid #ddd; padding: 8px;">${prescription.id}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">${prescription.patient}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">${prescription.medication}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">${prescription.status}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">${prescription.flagged ? 'Yes' : 'No'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+    reportElement.id = 'prescription-report';
+    document.body.appendChild(reportElement);
+    
+    exportToPDF('prescription-report', 'prescription_report.pdf');
+    
+    // Clean up
+    setTimeout(() => {
+      document.body.removeChild(reportElement);
+    }, 1000);
   };
 
   return (
@@ -269,6 +317,7 @@ export const Prescriptions = () => {
       <PrescriptionDetailsModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onEdit={handleEditPrescription}
         prescription={selectedPrescription}
       />
     </div>

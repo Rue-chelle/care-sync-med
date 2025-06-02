@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -124,7 +123,50 @@ export const Billing = () => {
   };
 
   const handleExportReport = () => {
-    exportToPDF("Billing and Payment Report", filteredInvoices, "billing_report");
+    // Create a temporary element with the billing data
+    const reportElement = document.createElement('div');
+    reportElement.innerHTML = `
+      <div style="padding: 20px; font-family: Arial, sans-serif;">
+        <h1>Billing and Payment Report</h1>
+        <div style="margin: 20px 0;">
+          <h3>Summary</h3>
+          <p>Total Revenue: $${totalRevenue.toFixed(2)}</p>
+          <p>Pending Payments: $${pendingAmount.toFixed(2)}</p>
+          <p>Overdue Amount: $${overdueAmount.toFixed(2)}</p>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+          <thead>
+            <tr style="background-color: #f5f5f5;">
+              <th style="border: 1px solid #ddd; padding: 8px;">Invoice ID</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Patient</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Service</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Amount</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filteredInvoices.map(invoice => `
+              <tr>
+                <td style="border: 1px solid #ddd; padding: 8px;">${invoice.id}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">${invoice.patient}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">${invoice.service}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">$${invoice.amount.toFixed(2)}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">${invoice.status}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+    reportElement.id = 'billing-report';
+    document.body.appendChild(reportElement);
+    
+    exportToPDF('billing-report', 'billing_report.pdf');
+    
+    // Clean up
+    setTimeout(() => {
+      document.body.removeChild(reportElement);
+    }, 1000);
   };
 
   return (

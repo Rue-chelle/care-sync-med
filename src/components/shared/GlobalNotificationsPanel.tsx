@@ -76,7 +76,16 @@ export const GlobalNotificationsPanel = ({ isOpen, onClose, userRole }: GlobalNo
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setNotifications(data || []);
+      
+      // Type-safe conversion of the data
+      const typedNotifications: Notification[] = (data || []).map(item => ({
+        ...item,
+        type: ['info', 'success', 'warning', 'error'].includes(item.type) 
+          ? item.type as 'info' | 'success' | 'warning' | 'error'
+          : 'info'
+      }));
+      
+      setNotifications(typedNotifications);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {

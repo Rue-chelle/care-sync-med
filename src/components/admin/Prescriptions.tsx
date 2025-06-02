@@ -143,7 +143,7 @@ export const Prescriptions = () => {
     reportElement.id = 'prescription-report';
     document.body.appendChild(reportElement);
     
-    exportToPDF('prescription-report', 'prescription_report.pdf');
+    exportToPDF('prescription-report', 'prescription_report');
     
     // Clean up
     setTimeout(() => {

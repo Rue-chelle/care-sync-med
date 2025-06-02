@@ -105,8 +105,6 @@ const SuperAdminDashboard = () => {
           userRole="super-admin"
           userName="Super Admin"
           theme="dark"
-          isOpen={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
         />
 
         {/* Main Content */}

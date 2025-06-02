@@ -5,10 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Plus, Edit, Pause, Play, Eye } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Search, Plus, Edit, Pause, Play, Eye, Download, Building, Users, Calendar, CreditCard } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { exportToPDF } from "@/utils/pdfExport";
 
 export const ClinicManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedClinic, setSelectedClinic] = useState<any>(null);
+  const { toast } = useToast();
 
   // Mock data - in real app, this would come from your database
   const clinics = [
@@ -22,7 +29,9 @@ export const ClinicManagement = () => {
       status: "active",
       doctors: 15,
       patients: 1250,
-      appointments: 89
+      appointments: 89,
+      createdAt: "2024-01-15",
+      lastActive: "2024-01-20 14:30"
     },
     {
       id: "2",
@@ -34,7 +43,9 @@ export const ClinicManagement = () => {
       status: "trial",
       doctors: 8,
       patients: 560,
-      appointments: 34
+      appointments: 34,
+      createdAt: "2024-01-10",
+      lastActive: "2024-01-20 09:15"
     },
     {
       id: "3",
@@ -46,7 +57,9 @@ export const ClinicManagement = () => {
       status: "suspended",
       doctors: 25,
       patients: 2100,
-      appointments: 156
+      appointments: 156,
+      createdAt: "2023-12-01",
+      lastActive: "2024-01-18 16:45"
     }
   ];
 
@@ -78,11 +91,29 @@ export const ClinicManagement = () => {
     }
   };
 
-  const filteredClinics = clinics.filter(clinic =>
-    clinic.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    clinic.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    clinic.location.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredClinics = clinics.filter(clinic => {
+    const matchesSearch = clinic.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         clinic.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         clinic.location.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || clinic.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const handleToggleStatus = (clinic: any) => {
+    const newStatus = clinic.status === "active" ? "suspended" : "active";
+    toast({
+      title: "Status Updated",
+      description: `${clinic.name} has been ${newStatus}`,
+    });
+  };
+
+  const handleExportClinics = () => {
+    exportToPDF(filteredClinics, 'clinics-report', 'Clinics Management Report');
+  };
+
+  const handleViewClinic = (clinic: any) => {
+    setSelectedClinic(clinic);
+  };
 
   return (
     <div className="space-y-6">
@@ -92,26 +123,94 @@ export const ClinicManagement = () => {
           <h2 className="text-2xl font-bold text-white">Clinic Management</h2>
           <p className="text-purple-300">Manage all registered clinics and their subscriptions</p>
         </div>
-        <Button className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Clinic
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleExportClinics} variant="outline" className="border-purple-500/30 text-purple-300">
+            <Download className="h-4 w-4 mr-2" />
+            Export Report
+          </Button>
+          <Button className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Clinic
+          </Button>
+        </div>
       </div>
 
-      {/* Search */}
+      {/* Filters */}
       <Card className="bg-white/10 backdrop-blur-sm border-purple-500/20">
         <CardContent className="p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-400 h-4 w-4" />
-            <Input
-              placeholder="Search clinics by name, email, or location..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-white/5 border-purple-500/30 text-white placeholder-purple-300"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-400 h-4 w-4" />
+              <Input
+                placeholder="Search clinics by name, email, or location..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-white/5 border-purple-500/30 text-white placeholder-purple-300"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="bg-white/5 border-purple-500/30 text-white">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="trial">Trial</SelectItem>
+                <SelectItem value="suspended">Suspended</SelectItem>
+                <SelectItem value="expired">Expired</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="bg-white/10 backdrop-blur-sm border-purple-500/20">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-300 text-sm">Total Clinics</p>
+                <p className="text-2xl font-bold text-white">{clinics.length}</p>
+              </div>
+              <Building className="h-8 w-8 text-purple-400" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-white/10 backdrop-blur-sm border-purple-500/20">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-300 text-sm">Active Clinics</p>
+                <p className="text-2xl font-bold text-white">{clinics.filter(c => c.status === 'active').length}</p>
+              </div>
+              <Users className="h-8 w-8 text-green-400" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-white/10 backdrop-blur-sm border-purple-500/20">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-300 text-sm">Total Patients</p>
+                <p className="text-2xl font-bold text-white">{clinics.reduce((sum, c) => sum + c.patients, 0)}</p>
+              </div>
+              <Users className="h-8 w-8 text-blue-400" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-white/10 backdrop-blur-sm border-purple-500/20">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-300 text-sm">Total Appointments</p>
+                <p className="text-2xl font-bold text-white">{clinics.reduce((sum, c) => sum + c.appointments, 0)}</p>
+              </div>
+              <Calendar className="h-8 w-8 text-orange-400" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Clinics Table */}
       <Card className="bg-white/10 backdrop-blur-sm border-purple-500/20">
@@ -126,6 +225,7 @@ export const ClinicManagement = () => {
                 <TableHead className="text-purple-300">Subscription</TableHead>
                 <TableHead className="text-purple-300">Status</TableHead>
                 <TableHead className="text-purple-300">Users</TableHead>
+                <TableHead className="text-purple-300">Last Active</TableHead>
                 <TableHead className="text-purple-300">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -154,14 +254,84 @@ export const ClinicManagement = () => {
                     </div>
                   </TableCell>
                   <TableCell>
+                    <div className="text-sm text-purple-300">{clinic.lastActive}</div>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex space-x-2">
-                      <Button size="sm" variant="outline" className="border-purple-500/30 text-purple-300">
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button size="sm" variant="outline" className="border-purple-500/30 text-purple-300" onClick={() => handleViewClinic(clinic)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl">
+                          <DialogHeader>
+                            <DialogTitle>Clinic Details - {selectedClinic?.name}</DialogTitle>
+                          </DialogHeader>
+                          {selectedClinic && (
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <label className="text-sm font-medium">Clinic Name</label>
+                                  <p className="text-gray-600">{selectedClinic.name}</p>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium">Email</label>
+                                  <p className="text-gray-600">{selectedClinic.email}</p>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium">Phone</label>
+                                  <p className="text-gray-600">{selectedClinic.phone}</p>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium">Location</label>
+                                  <p className="text-gray-600">{selectedClinic.location}</p>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium">Subscription</label>
+                                  <p className="text-gray-600">{selectedClinic.subscription}</p>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium">Status</label>
+                                  <p className="text-gray-600">{selectedClinic.status}</p>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-3 gap-4">
+                                <Card>
+                                  <CardContent className="p-4 text-center">
+                                    <Users className="h-8 w-8 mx-auto mb-2 text-blue-500" />
+                                    <p className="text-2xl font-bold">{selectedClinic.doctors}</p>
+                                    <p className="text-sm text-gray-600">Doctors</p>
+                                  </CardContent>
+                                </Card>
+                                <Card>
+                                  <CardContent className="p-4 text-center">
+                                    <Users className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                                    <p className="text-2xl font-bold">{selectedClinic.patients}</p>
+                                    <p className="text-sm text-gray-600">Patients</p>
+                                  </CardContent>
+                                </Card>
+                                <Card>
+                                  <CardContent className="p-4 text-center">
+                                    <Calendar className="h-8 w-8 mx-auto mb-2 text-orange-500" />
+                                    <p className="text-2xl font-bold">{selectedClinic.appointments}</p>
+                                    <p className="text-sm text-gray-600">Appointments</p>
+                                  </CardContent>
+                                </Card>
+                              </div>
+                            </div>
+                          )}
+                        </DialogContent>
+                      </Dialog>
                       <Button size="sm" variant="outline" className="border-purple-500/30 text-purple-300">
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="outline" className="border-purple-500/30 text-purple-300">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="border-purple-500/30 text-purple-300"
+                        onClick={() => handleToggleStatus(clinic)}
+                      >
                         {clinic.status === "active" ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                       </Button>
                     </div>

@@ -1,46 +1,83 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building, Users, CreditCard, AlertTriangle, TrendingUp, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Building, Users, CreditCard, AlertTriangle, TrendingUp, Calendar, Download, Eye, Settings } from "lucide-react";
+import { exportToPDF } from "@/utils/pdfExport";
 
 export const SuperAdminOverview = () => {
+  const statsData = [
+    { label: "Total Clinics", value: "247", change: "+12%", period: "from last month" },
+    { label: "Active Users", value: "12,847", change: "+8%", period: "from last week" },
+    { label: "Revenue", value: "$54,721", change: "+23%", period: "from last month" },
+    { label: "Support Tickets", value: "18", change: "", period: "5 urgent, 13 normal" }
+  ];
+
+  const recentActivity = [
+    { type: "success", message: "New clinic registered: MediCare Plus", time: "2 minutes ago" },
+    { type: "warning", message: "Support ticket created by HealthFirst Clinic", time: "15 minutes ago" },
+    { type: "info", message: "Feature flag updated: prescription_ai", time: "1 hour ago" },
+    { type: "error", message: "Payment failed for Wellness Center", time: "3 hours ago" }
+  ];
+
+  const handleExportReport = () => {
+    exportToPDF(statsData, 'super-admin-overview', 'Super Admin Overview Report');
+  };
+
   return (
     <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-3xl font-bold text-white">Super Admin Overview</h2>
+          <p className="text-purple-300 mt-2">Platform-wide metrics and system health</p>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={handleExportReport} className="bg-purple-600 hover:bg-purple-700">
+            <Download className="h-4 w-4 mr-2" />
+            Export Report
+          </Button>
+          <Button variant="outline" className="border-purple-500/30 text-purple-300">
+            <Settings className="h-4 w-4 mr-2" />
+            Quick Settings
+          </Button>
+        </div>
+      </div>
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-white/10 backdrop-blur-sm border-purple-500/20">
+        <Card className="bg-white/10 backdrop-blur-sm border-purple-500/20 hover:bg-white/20 transition-all">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-purple-300">Total Clinics</CardTitle>
             <Building className="h-4 w-4 text-purple-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">247</div>
-            <p className="text-xs text-purple-300">+12% from last month</p>
+            <p className="text-xs text-green-400">+12% from last month</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-white/10 backdrop-blur-sm border-purple-500/20">
+        <Card className="bg-white/10 backdrop-blur-sm border-purple-500/20 hover:bg-white/20 transition-all">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-purple-300">Active Users</CardTitle>
             <Users className="h-4 w-4 text-purple-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">12,847</div>
-            <p className="text-xs text-purple-300">+8% from last week</p>
+            <p className="text-xs text-green-400">+8% from last week</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-white/10 backdrop-blur-sm border-purple-500/20">
+        <Card className="bg-white/10 backdrop-blur-sm border-purple-500/20 hover:bg-white/20 transition-all">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-purple-300">Revenue</CardTitle>
             <CreditCard className="h-4 w-4 text-purple-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">$54,721</div>
-            <p className="text-xs text-purple-300">+23% from last month</p>
+            <p className="text-xs text-green-400">+23% from last month</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-white/10 backdrop-blur-sm border-purple-500/20">
+        <Card className="bg-white/10 backdrop-blur-sm border-purple-500/20 hover:bg-white/20 transition-all">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-purple-300">Support Tickets</CardTitle>
             <AlertTriangle className="h-4 w-4 text-purple-400" />
@@ -88,6 +125,11 @@ export const SuperAdminOverview = () => {
                 <span className="text-yellow-400">125ms avg</span>
               </div>
             </div>
+
+            <Button variant="outline" className="w-full border-purple-500/30 text-purple-300 mt-4">
+              <Eye className="h-4 w-4 mr-2" />
+              View Detailed Analytics
+            </Button>
           </CardContent>
         </Card>
 
@@ -100,38 +142,25 @@ export const SuperAdminOverview = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-green-400 rounded-full mt-2"></div>
-                <div>
-                  <p className="text-sm text-white">New clinic registered: MediCare Plus</p>
-                  <p className="text-xs text-purple-300">2 minutes ago</p>
+              {recentActivity.map((activity, index) => (
+                <div key={index} className="flex items-start space-x-3">
+                  <div className={`w-2 h-2 rounded-full mt-2 ${
+                    activity.type === 'success' ? 'bg-green-400' :
+                    activity.type === 'warning' ? 'bg-yellow-400' :
+                    activity.type === 'error' ? 'bg-red-400' : 'bg-blue-400'
+                  }`}></div>
+                  <div className="flex-1">
+                    <p className="text-sm text-white">{activity.message}</p>
+                    <p className="text-xs text-purple-300">{activity.time}</p>
+                  </div>
                 </div>
-              </div>
-              
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2"></div>
-                <div>
-                  <p className="text-sm text-white">Support ticket created by HealthFirst Clinic</p>
-                  <p className="text-xs text-purple-300">15 minutes ago</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-blue-400 rounded-full mt-2"></div>
-                <div>
-                  <p className="text-sm text-white">Feature flag updated: prescription_ai</p>
-                  <p className="text-xs text-purple-300">1 hour ago</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-red-400 rounded-full mt-2"></div>
-                <div>
-                  <p className="text-sm text-white">Payment failed for Wellness Center</p>
-                  <p className="text-xs text-purple-300">3 hours ago</p>
-                </div>
-              </div>
+              ))}
             </div>
+            
+            <Button variant="outline" className="w-full border-purple-500/30 text-purple-300 mt-4">
+              <Eye className="h-4 w-4 mr-2" />
+              View All Activity
+            </Button>
           </CardContent>
         </Card>
       </div>

@@ -2,83 +2,78 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-export const exportToPDF = async (
-  elementId: string, 
-  filename: string = 'report.pdf',
-  options?: {
-    orientation?: 'portrait' | 'landscape';
-    unit?: 'mm' | 'pt' | 'in';
-    format?: string | number[];
+export const exportToPDF = async (data: any[], filename: string, title: string) => {
+  try {
+    const pdf = new jsPDF();
+    
+    // Add title
+    pdf.setFontSize(20);
+    pdf.text(title, 20, 20);
+    
+    // Add date
+    pdf.setFontSize(10);
+    pdf.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 30);
+    
+    // Add data as table
+    let yPosition = 50;
+    
+    if (Array.isArray(data) && data.length > 0) {
+      // Get headers from first object
+      const headers = Object.keys(data[0]);
+      
+      // Add headers
+      pdf.setFontSize(12);
+      headers.forEach((header, index) => {
+        pdf.text(header.charAt(0).toUpperCase() + header.slice(1), 20 + (index * 40), yPosition);
+      });
+      
+      yPosition += 10;
+      
+      // Add data rows
+      pdf.setFontSize(10);
+      data.forEach((row, rowIndex) => {
+        headers.forEach((header, colIndex) => {
+          const value = row[header] ? String(row[header]) : '';
+          pdf.text(value.substring(0, 15), 20 + (colIndex * 40), yPosition + (rowIndex * 8));
+        });
+      });
+    }
+    
+    // Save the PDF
+    pdf.save(`${filename}.pdf`);
+  } catch (error) {
+    console.error('Error generating PDF:', error);
   }
-) => {
+};
+
+export const exportElementToPDF = async (elementId: string, filename: string) => {
   try {
     const element = document.getElementById(elementId);
-    if (!element) {
-      console.error(`Element with id "${elementId}" not found`);
-      return;
-    }
-
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true
-    });
-
+    if (!element) return;
+    
+    const canvas = await html2canvas(element);
     const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF({
-      orientation: options?.orientation || 'portrait',
-      unit: options?.unit || 'mm',
-      format: options?.format || 'a4'
-    });
-
+    
+    const pdf = new jsPDF();
     const imgWidth = 210;
     const pageHeight = 295;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
     let heightLeft = imgHeight;
-
+    
     let position = 0;
-
+    
     pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
     heightLeft -= pageHeight;
-
+    
     while (heightLeft >= 0) {
       position = heightLeft - imgHeight;
       pdf.addPage();
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
     }
-
-    pdf.save(filename);
+    
+    pdf.save(`${filename}.pdf`);
   } catch (error) {
-    console.error('Error exporting PDF:', error);
+    console.error('Error generating PDF:', error);
   }
-};
-
-export const generatePrescriptionPDF = (prescription: any) => {
-  const pdf = new jsPDF();
-  
-  // Header
-  pdf.setFontSize(20);
-  pdf.text('Medical Prescription', 20, 30);
-  
-  // Patient info
-  pdf.setFontSize(12);
-  pdf.text(`Patient: ${prescription.patient}`, 20, 50);
-  pdf.text(`Doctor: ${prescription.doctor}`, 20, 60);
-  pdf.text(`Date: ${prescription.date}`, 20, 70);
-  
-  // Prescription details
-  pdf.setFontSize(14);
-  pdf.text('Prescription Details:', 20, 90);
-  
-  pdf.setFontSize(12);
-  pdf.text(`Medication: ${prescription.medication}`, 20, 110);
-  pdf.text(`Dosage: ${prescription.dosage}`, 20, 120);
-  pdf.text(`Duration: ${prescription.duration}`, 20, 130);
-  
-  if (prescription.instructions) {
-    pdf.text(`Instructions: ${prescription.instructions}`, 20, 140);
-  }
-  
-  pdf.save(`prescription-${prescription.id}.pdf`);
 };

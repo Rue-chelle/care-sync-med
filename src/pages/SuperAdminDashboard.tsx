@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { SuperAdminLayout } from "@/components/layout/SuperAdminLayout";
 import { SuperAdminOverview } from "@/components/super-admin/SuperAdminOverview";
 import { ClinicManagement } from "@/components/super-admin/ClinicManagement";
@@ -12,12 +13,20 @@ import { SubscriptionManagement } from "@/components/super-admin/SubscriptionMan
 import { DashboardSidebar } from "@/components/shared/DashboardSidebar";
 import { GlobalNotificationsPanel } from "@/components/shared/GlobalNotificationsPanel";
 import { Button } from "@/components/ui/button";
+import { useUserStore } from "@/stores/userStore";
 import { LogOut, Bell, Menu, TrendingUp, Building, Users, CreditCard, Settings, MessageSquare, FileText, BarChart } from "lucide-react";
 
 const SuperAdminDashboard = () => {
   const [currentTab, setCurrentTab] = useState("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const { logout } = useUserStore();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/auth");
+  };
 
   const sidebarItems = [
     { id: "overview", label: "Overview", icon: TrendingUp },
@@ -88,7 +97,12 @@ const SuperAdminDashboard = () => {
                 <Bell className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">Notifications</span>
               </Button>
-              <Button variant="ghost" size="sm" className="text-purple-300 hover:bg-purple-500/20">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-purple-300 hover:bg-purple-500/20"
+                onClick={handleLogout}
+              >
                 <LogOut className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">Sign Out</span>
               </Button>

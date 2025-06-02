@@ -3,11 +3,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { AlertTriangle, Calendar, Clock, User, Pill, FileText } from "lucide-react";
+import { AlertTriangle, Calendar, Clock, User, Pill, FileText, Printer, Edit } from "lucide-react";
+import { generatePrescriptionPDF } from "@/utils/pdfExport";
 
 interface PrescriptionDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onEdit: (id: string) => void;
   prescription: {
     id: string;
     patient: string;
@@ -21,7 +23,7 @@ interface PrescriptionDetailsModalProps {
   } | null;
 }
 
-export const PrescriptionDetailsModal = ({ isOpen, onClose, prescription }: PrescriptionDetailsModalProps) => {
+export const PrescriptionDetailsModal = ({ isOpen, onClose, onEdit, prescription }: PrescriptionDetailsModalProps) => {
   if (!prescription) return null;
 
   const getStatusBadgeColor = (status: string) => {
@@ -31,6 +33,11 @@ export const PrescriptionDetailsModal = ({ isOpen, onClose, prescription }: Pres
       case "cancelled": return "bg-red-100 text-red-800";
       default: return "bg-gray-100 text-gray-800";
     }
+  };
+
+  const handlePrint = () => {
+    if (!prescription) return;
+    generatePrescriptionPDF(prescription);
   };
 
   return (
@@ -120,10 +127,19 @@ export const PrescriptionDetailsModal = ({ isOpen, onClose, prescription }: Pres
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
-            <Button className="healthcare-gradient text-white flex-1">
+            <Button 
+              className="healthcare-gradient text-white flex-1"
+              onClick={handlePrint}
+            >
+              <Printer className="h-4 w-4 mr-2" />
               Print Prescription
             </Button>
-            <Button variant="outline" className="flex-1">
+            <Button 
+              variant="outline" 
+              className="flex-1" 
+              onClick={() => onEdit(prescription.id)}
+            >
+              <Edit className="h-4 w-4 mr-2" />
               Edit Prescription
             </Button>
             <Button variant="outline" onClick={onClose}>

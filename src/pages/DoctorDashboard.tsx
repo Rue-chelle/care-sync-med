@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,8 @@ import { DoctorAnalytics } from "@/components/doctor/DoctorAnalytics";
 import { AvailabilitySettings } from "@/components/doctor/AvailabilitySettings";
 import { FileUpload } from "@/components/doctor/FileUpload";
 import { DashboardSidebar } from "@/components/shared/DashboardSidebar";
+import { DoctorNotifications } from "@/components/doctor/DoctorNotifications";
+import { EnhancedScheduleModal } from "@/components/doctor/EnhancedScheduleModal";
 
 interface DoctorProfile {
   id: string;
@@ -30,6 +33,7 @@ interface DoctorProfile {
 const DoctorDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [doctorProfile, setDoctorProfile] = useState<DoctorProfile | null>(null);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [todayStats, setTodayStats] = useState({
     totalAppointments: 0,
     completedAppointments: 0,
@@ -147,6 +151,7 @@ const DoctorDashboard = () => {
     { id: "patients", label: "Patient Records", icon: Users },
     { id: "prescriptions", label: "E-Prescriptions", icon: FileText },
     { id: "messages", label: "Messages", icon: MessageSquare, badge: todayStats.unreadMessages },
+    { id: "notifications", label: "Notifications", icon: Bell },
     { id: "files", label: "File Upload", icon: Upload },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
     { id: "availability", label: "Availability", icon: Settings },
@@ -157,7 +162,16 @@ const DoctorDashboard = () => {
       case "dashboard":
         return (
           <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-slate-800">Dashboard Overview</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-3xl font-bold text-slate-800">Dashboard Overview</h2>
+              <Button
+                className="bg-gradient-to-r from-blue-600 to-teal-600 text-white"
+                onClick={() => setShowScheduleModal(true)}
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Schedule New Appointment
+              </Button>
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Card>
@@ -234,6 +248,8 @@ const DoctorDashboard = () => {
         return <PrescriptionTool />;
       case "messages":
         return <MessagingInterface userType="doctor" />;
+      case "notifications":
+        return <DoctorNotifications />;
       case "files":
         return <FileUpload />;
       case "analytics":
@@ -248,10 +264,10 @@ const DoctorDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-teal-50">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-blue-100 sticky top-0 z-30">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-blue-100 sticky top-0 z-40">
         <div className="px-4 lg:px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3 ml-12 lg:ml-0">
+            <div className="flex items-center space-x-3">
               <div className="h-10 w-10 bg-gradient-to-r from-blue-600 to-teal-600 rounded-xl flex items-center justify-center">
                 <div className="h-6 w-6 text-white font-bold">AM</div>
               </div>
@@ -293,10 +309,22 @@ const DoctorDashboard = () => {
         />
 
         {/* Main Content */}
-        <main className="flex-1 p-4 lg:p-6">
+        <main className="flex-1 p-4 lg:p-6 relative z-10">
           {renderContent()}
         </main>
       </div>
+
+      {/* Schedule Modal */}
+      <EnhancedScheduleModal
+        isOpen={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        onSchedule={() => {
+          // Refresh appointments if we're on that tab
+          if (activeTab === "appointments") {
+            window.location.reload();
+          }
+        }}
+      />
     </div>
   );
 };

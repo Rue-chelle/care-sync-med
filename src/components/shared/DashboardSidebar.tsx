@@ -1,29 +1,16 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { 
-  Menu, 
-  X, 
-  User, 
-  Calendar, 
-  FileText, 
-  MessageSquare, 
-  Plus, 
-  BarChart3,
-  Settings,
-  Users,
-  Pill,
-  Building,
-  Shield
-} from "lucide-react";
+import { Menu, ChevronLeft, ChevronRight, User } from "lucide-react";
+import { useWindowSize } from "@/hooks/useWindowSize";
 
 interface SidebarItem {
   id: string;
   label: string;
-  icon: any;
+  icon: React.ElementType;
   badge?: number;
 }
 
@@ -33,98 +20,171 @@ interface DashboardSidebarProps {
   onTabChange: (tab: string) => void;
   userRole: string;
   userName?: string;
+  theme?: 'light' | 'dark';
 }
 
 export const DashboardSidebar = ({ 
   items, 
   activeTab, 
-  onTabChange, 
-  userRole, 
-  userName 
+  onTabChange,
+  userRole,
+  userName,
+  theme = 'light'
 }: DashboardSidebarProps) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const isMobile = useIsMobile();
+  const [collapsed, setCollapsed] = useState(true);
+  const { width } = useWindowSize();
+  const isMobile = width < 768;
 
-  const toggleSidebar = () => setIsOpen(!isOpen);
-  const closeSidebar = () => setIsOpen(false);
+  // Always start collapsed on mobile, or remember user preference on desktop
+  useEffect(() => {
+    if (isMobile) {
+      setCollapsed(true);
+    } else {
+      // Try to load from localStorage on desktop
+      const savedState = localStorage.getItem(`${userRole}-sidebar-collapsed`);
+      if (savedState !== null) {
+        setCollapsed(savedState === 'true');
+      } else {
+        // Default to collapsed for cleaner UI
+        setCollapsed(true);
+      }
+    }
+  }, [isMobile, userRole]);
+
+  // Save preference when changed
+  useEffect(() => {
+    if (!isMobile) {
+      localStorage.setItem(`${userRole}-sidebar-collapsed`, String(collapsed));
+    }
+  }, [collapsed, isMobile, userRole]);
+
+  const toggleCollapsed = () => {
+    setCollapsed(!collapsed);
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      ? name
+          .split(' ')
+          .map((n) => n[0])
+          .join('')
+          .toUpperCase()
+          .slice(0, 2)
+      : 'U';
+  };
+
+  const baseClasses = `${
+    theme === 'dark' 
+      ? 'bg-[#121212]/80 backdrop-blur-md' 
+      : 'bg-white/80 backdrop-blur-md'
+  } h-screen fixed left-0 top-0 pt-20 border-r ${
+    theme === 'dark' ? 'border-purple-500/20' : 'border-slate-200'
+  } flex flex-col transition-all duration-300 z-30`;
+
+  const textClasses = theme === 'dark' ? 'text-purple-300' : 'text-slate-600';
+  const bgHoverClasses = theme === 'dark' ? 'hover:bg-purple-500/10' : 'hover:bg-slate-100';
+  const activeBgClasses = theme === 'dark' ? 'bg-purple-500/20' : 'bg-blue-50';
+  const activeTextClasses = theme === 'dark' ? 'text-white' : 'text-blue-600';
 
   return (
     <>
-      {/* Mobile Overlay */}
-      {isMobile && isOpen && (
+      {/* Mobile backdrop */}
+      {!collapsed && isMobile && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40"
-          onClick={closeSidebar}
+          className="fixed inset-0 bg-black/40 z-20 backdrop-blur-sm"
+          onClick={() => setCollapsed(true)}
         />
       )}
 
-      {/* Hamburger Menu Button */}
+      {/* Toggle button for mobile */}
       <Button
-        variant="ghost"
-        size="sm"
-        onClick={toggleSidebar}
-        className="fixed top-4 left-4 z-50 lg:relative lg:top-0 lg:left-0"
+        variant="outline"
+        size="icon"
+        className={`fixed ${theme === 'dark' ? 'text-white bg-[#1a1a2e] border-purple-500/20' : ''} left-4 top-4 z-50 md:hidden`}
+        onClick={toggleCollapsed}
       >
-        {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        <Menu className="h-5 w-5" />
       </Button>
 
       {/* Sidebar */}
-      <aside className={cn(
-        "fixed lg:relative z-40 h-screen bg-white/90 backdrop-blur-sm border-r border-blue-100 transition-transform duration-300 ease-in-out",
-        "w-64",
-        isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
-        !isOpen && "lg:w-16"
-      )}>
-        <div className="p-4 h-full flex flex-col">
-          {/* User Info */}
-          <div className={cn(
-            "mb-6 pb-4 border-b border-blue-100",
-            !isOpen && "lg:hidden"
-          )}>
-            <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 bg-gradient-to-r from-blue-500 to-teal-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                {userName?.substring(0, 1) || userRole.substring(0, 1).toUpperCase()}
-              </div>
-              <div className={cn("transition-opacity", !isOpen && "lg:opacity-0")}>
-                <p className="font-medium text-sm">{userName || "User"}</p>
-                <p className="text-xs text-gray-600 capitalize">{userRole}</p>
+      <aside
+        className={`${baseClasses} ${
+          collapsed 
+            ? 'w-16 translate-x-0' 
+            : isMobile 
+              ? 'w-64 translate-x-0' 
+              : 'w-64 translate-x-0'
+        } ${isMobile && collapsed ? '-translate-x-full' : ''}`}
+      >
+        <div className="flex items-center justify-between px-3 mb-6">
+          {!collapsed && (
+            <div className={`truncate font-medium ${theme === 'dark' ? 'text-purple-100' : 'text-slate-800'}`}>
+              {userRole === 'patient' ? 'Patient Portal' : (
+                userRole === 'doctor' ? 'Doctor Portal' : (
+                  userRole === 'admin' ? 'Admin Portal' : 'Super Admin'
+                )
+              )}
+            </div>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`${theme === 'dark' ? 'text-purple-300 hover:bg-purple-500/10' : ''} ml-auto`}
+            onClick={toggleCollapsed}
+          >
+            {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+          </Button>
+        </div>
+
+        {!collapsed && userName && (
+          <div className={`mb-6 px-3 py-2 ${theme === 'dark' ? 'bg-purple-500/10' : 'bg-slate-50'} mx-3 rounded-lg`}>
+            <div className="flex items-center space-x-2">
+              <Avatar className={`h-8 w-8 ${theme === 'dark' ? 'bg-purple-600 text-white' : 'bg-blue-600 text-white'}`}>
+                <AvatarFallback>{getInitials(userName)}</AvatarFallback>
+              </Avatar>
+              <div className="space-y-1">
+                <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-slate-700'} leading-none`}>
+                  {userName}
+                </p>
+                <p className={`text-xs ${theme === 'dark' ? 'text-purple-300' : 'text-slate-500'} leading-none`}>
+                  {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+                </p>
               </div>
             </div>
           </div>
+        )}
 
-          {/* Navigation Items */}
-          <nav className="space-y-2 flex-1">
+        <ScrollArea className="flex-1 px-3">
+          <div className="space-y-1">
             {items.map((item) => {
+              const isActive = activeTab === item.id;
               const Icon = item.icon;
+              
               return (
                 <Button
                   key={item.id}
-                  variant={activeTab === item.id ? "default" : "ghost"}
-                  className={cn(
-                    "w-full justify-start relative",
-                    activeTab === item.id 
-                      ? "bg-gradient-to-r from-blue-600 to-teal-600 text-white" 
-                      : "hover:bg-blue-50",
-                    !isOpen && "lg:justify-center lg:px-2"
-                  )}
+                  variant="ghost"
+                  className={`w-full ${
+                    isActive 
+                      ? `${activeBgClasses} ${activeTextClasses}`
+                      : `${textClasses} ${bgHoverClasses}`
+                  } justify-start ${collapsed ? 'pl-4' : ''}`}
                   onClick={() => {
                     onTabChange(item.id);
-                    if (isMobile) closeSidebar();
+                    if (isMobile) setCollapsed(true);
                   }}
                 >
-                  <Icon className={cn("h-4 w-4", isOpen || !isMobile ? "mr-3" : "")} />
-                  <span className={cn(
-                    "transition-opacity",
-                    !isOpen && "lg:opacity-0 lg:absolute lg:left-full lg:ml-2 lg:bg-gray-900 lg:text-white lg:px-2 lg:py-1 lg:rounded lg:text-xs lg:whitespace-nowrap lg:z-50"
-                  )}>
-                    {item.label}
-                  </span>
-                  {item.badge && item.badge > 0 && (
+                  <Icon className={`h-5 w-5 ${isActive ? '' : ''} ${collapsed ? 'mx-auto' : 'mr-2'}`} />
+                  {!collapsed && <span>{item.label}</span>}
+                  {!collapsed && item.badge && item.badge > 0 && (
+                    <Badge className="ml-auto" variant={theme === 'dark' ? 'outline' : 'default'}>
+                      {item.badge}
+                    </Badge>
+                  )}
+                  {collapsed && item.badge && item.badge > 0 && (
                     <Badge 
-                      className={cn(
-                        "ml-auto bg-red-500 text-white",
-                        !isOpen && "lg:absolute lg:-top-1 lg:-right-1"
-                      )}
+                      className="absolute top-0 right-0 translate-x-1 -translate-y-1 h-5 w-5 p-0 flex items-center justify-center"
+                      variant={theme === 'dark' ? 'outline' : 'default'}
                     >
                       {item.badge}
                     </Badge>
@@ -132,19 +192,14 @@ export const DashboardSidebar = ({
                 </Button>
               );
             })}
-          </nav>
-
-          {/* AloraMed Branding */}
-          <div className={cn(
-            "mt-auto pt-4 border-t border-blue-100 text-center",
-            !isOpen && "lg:hidden"
-          )}>
-            <div className="text-xs text-gray-500">Powered by</div>
-            <div className="font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
-              AloraMed
-            </div>
           </div>
-        </div>
+        </ScrollArea>
+
+        {!collapsed && (
+          <div className={`mt-auto p-4 ${theme === 'dark' ? 'text-purple-400' : 'text-slate-500'} text-xs`}>
+            <p>© 2025 AloraMed</p>
+          </div>
+        )}
       </aside>
     </>
   );

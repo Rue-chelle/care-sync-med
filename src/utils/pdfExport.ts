@@ -1,70 +1,84 @@
 
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 
-export const exportToPDF = (title: string, data: any[], filename: string) => {
-  const doc = new jsPDF();
-  
-  // Add header
-  doc.setFontSize(20);
-  doc.text('AloraMed Healthcare System', 20, 20);
-  
-  doc.setFontSize(16);
-  doc.text(title, 20, 35);
-  
-  doc.setFontSize(10);
-  doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 45);
-  
-  // Prepare table data based on the type of export
-  let headers: string[] = [];
-  let rows: any[][] = [];
-  
-  if (title.includes('Prescription')) {
-    headers = ['ID', 'Patient', 'Doctor', 'Medication', 'Dosage', 'Duration', 'Date', 'Status'];
-    rows = data.map(item => [
-      item.id,
-      item.patient,
-      item.doctor,
-      item.medication,
-      item.dosage,
-      item.duration,
-      item.date,
-      item.status
-    ]);
-  } else if (title.includes('Billing')) {
-    headers = ['Invoice ID', 'Patient', 'Doctor', 'Service', 'Amount', 'Date', 'Status'];
-    rows = data.map(item => [
-      item.id,
-      item.patient,
-      item.doctor,
-      item.service,
-      `$${item.amount?.toFixed(2)}`,
-      item.date,
-      item.status
-    ]);
-  } else {
-    // Generic export
-    if (data.length > 0) {
-      headers = Object.keys(data[0]);
-      rows = data.map(item => Object.values(item));
+export const exportToPDF = async (
+  elementId: string, 
+  filename: string = 'report.pdf',
+  options?: {
+    orientation?: 'portrait' | 'landscape';
+    unit?: 'mm' | 'pt' | 'in';
+    format?: string | number[];
+  }
+) => {
+  try {
+    const element = document.getElementById(elementId);
+    if (!element) {
+      console.error(`Element with id "${elementId}" not found`);
+      return;
     }
+
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true
+    });
+
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({
+      orientation: options?.orientation || 'portrait',
+      unit: options?.unit || 'mm',
+      format: options?.format || 'a4'
+    });
+
+    const imgWidth = 210;
+    const pageHeight = 295;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    let heightLeft = imgHeight;
+
+    let position = 0;
+
+    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+
+    while (heightLeft >= 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+
+    pdf.save(filename);
+  } catch (error) {
+    console.error('Error exporting PDF:', error);
+  }
+};
+
+export const generatePrescriptionPDF = (prescription: any) => {
+  const pdf = new jsPDF();
+  
+  // Header
+  pdf.setFontSize(20);
+  pdf.text('Medical Prescription', 20, 30);
+  
+  // Patient info
+  pdf.setFontSize(12);
+  pdf.text(`Patient: ${prescription.patient}`, 20, 50);
+  pdf.text(`Doctor: ${prescription.doctor}`, 20, 60);
+  pdf.text(`Date: ${prescription.date}`, 20, 70);
+  
+  // Prescription details
+  pdf.setFontSize(14);
+  pdf.text('Prescription Details:', 20, 90);
+  
+  pdf.setFontSize(12);
+  pdf.text(`Medication: ${prescription.medication}`, 20, 110);
+  pdf.text(`Dosage: ${prescription.dosage}`, 20, 120);
+  pdf.text(`Duration: ${prescription.duration}`, 20, 130);
+  
+  if (prescription.instructions) {
+    pdf.text(`Instructions: ${prescription.instructions}`, 20, 140);
   }
   
-  // Add table
-  autoTable(doc, {
-    head: [headers],
-    body: rows,
-    startY: 55,
-    styles: {
-      fontSize: 8,
-      cellPadding: 3,
-    },
-    headStyles: {
-      fillColor: [59, 130, 246],
-      textColor: 255,
-    },
-  });
-  
-  // Save the PDF
-  doc.save(`${filename}_${new Date().toISOString().split('T')[0]}.pdf`);
+  pdf.save(`prescription-${prescription.id}.pdf`);
 };

@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Calendar, User, Bell, MessageSquare, FileText, Pill, Plus, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserStore } from "@/stores/userStore";
-import { AppointmentBooking } from "@/components/patient/AppointmentBooking";
+import { EnhancedAppointmentBooking } from "@/components/patient/EnhancedAppointmentBooking";
 import { AppointmentsList } from "@/components/patient/AppointmentsList";
 import { PrescriptionsList } from "@/components/patient/PrescriptionsList";
-import { PatientProfile } from "@/components/patient/PatientProfile";
+import { EnhancedPatientProfile } from "@/components/patient/EnhancedPatientProfile";
 import { MessagingInterface } from "@/components/shared/MessagingInterface";
 import { DashboardSidebar } from "@/components/shared/DashboardSidebar";
 
@@ -147,15 +147,13 @@ const PatientDashboard = () => {
       case "profile":
         return (
           <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-slate-800">My Profile</h2>
-            <PatientProfile />
+            <EnhancedPatientProfile />
           </div>
         );
       case "book":
         return (
           <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-slate-800">Book New Appointment</h2>
-            <AppointmentBooking />
+            <EnhancedAppointmentBooking />
           </div>
         );
       default:
@@ -166,10 +164,10 @@ const PatientDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-teal-50">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-blue-100 sticky top-0 z-30">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-blue-100 sticky top-0 z-40">
         <div className="container mx-auto px-4 lg:px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3 ml-12 lg:ml-0">
+            <div className="flex items-center space-x-3">
               <div className="h-10 w-10 bg-gradient-to-r from-blue-600 to-teal-600 rounded-xl flex items-center justify-center">
                 <div className="h-6 w-6 text-white font-bold">AM</div>
               </div>

@@ -1,8 +1,7 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Building, Users, CreditCard, AlertTriangle, TrendingUp, Calendar, Download, Eye, Settings } from "lucide-react";
-import { exportToPDF } from "@/utils/pdfExport";
+import { exportDataToPDF } from "@/utils/pdfExport";
 
 export const SuperAdminOverview = () => {
   const statsData = [
@@ -20,7 +19,7 @@ export const SuperAdminOverview = () => {
   ];
 
   const handleExportReport = () => {
-    exportToPDF(statsData, 'super-admin-overview', 'Super Admin Overview Report');
+    exportDataToPDF(statsData, 'super-admin-overview', 'Super Admin Overview Report');
   };
 
   return (

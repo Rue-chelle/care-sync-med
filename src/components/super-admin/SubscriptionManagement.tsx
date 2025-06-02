@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { CreditCard, TrendingUp, AlertTriangle, DollarSign, Edit, Eye, Download, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { exportToPDF } from "@/utils/pdfExport";
+import { exportDataToPDF } from "@/utils/pdfExport";
 
 export const SubscriptionManagement = () => {
   const [planFilter, setPlanFilter] = useState("all");
@@ -124,7 +123,7 @@ export const SubscriptionManagement = () => {
   };
 
   const handleExportSubscriptions = () => {
-    exportToPDF(filteredSubscriptions, 'subscriptions-report', 'Subscription Management Report');
+    exportDataToPDF(filteredSubscriptions, 'subscriptions-report', 'Subscription Management Report');
   };
 
   const totalRevenue = subscriptions.reduce((sum, sub) => sum + sub.amount, 0);

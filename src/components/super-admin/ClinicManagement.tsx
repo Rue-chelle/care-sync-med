@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Search, Plus, Edit, Pause, Play, Eye, Download, Building, Users, Calendar, CreditCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { exportToPDF } from "@/utils/pdfExport";
+import { exportDataToPDF } from "@/utils/pdfExport";
 
 export const ClinicManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -108,7 +107,7 @@ export const ClinicManagement = () => {
   };
 
   const handleExportClinics = () => {
-    exportToPDF(filteredClinics, 'clinics-report', 'Clinics Management Report');
+    exportDataToPDF(filteredClinics, 'clinics-report', 'Clinics Management Report');
   };
 
   const handleViewClinic = (clinic: any) => {

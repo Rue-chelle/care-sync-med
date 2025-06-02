@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Search, UserX, RotateCcw, Edit, Eye, Download, Users, Shield, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { exportToPDF } from "@/utils/pdfExport";
+import { exportDataToPDF } from "@/utils/pdfExport";
 
 export const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -121,7 +120,7 @@ export const UserManagement = () => {
   };
 
   const handleExportUsers = () => {
-    exportToPDF(filteredUsers, 'users-report', 'User Management Report');
+    exportDataToPDF(filteredUsers, 'users-report', 'User Management Report');
   };
 
   return (

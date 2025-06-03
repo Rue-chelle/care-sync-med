@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, User, Bell, MessageSquare, FileText, Pill, Plus, LogOut, Menu } from "lucide-react";
+import { Calendar, User, Bell, MessageSquare, FileText, Pill, Plus, LogOut, Menu, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserStore } from "@/stores/userStore";
 import { EnhancedAppointmentBooking } from "@/components/patient/EnhancedAppointmentBooking";
@@ -11,7 +11,6 @@ import { AppointmentsList } from "@/components/patient/AppointmentsList";
 import { PrescriptionsList } from "@/components/patient/PrescriptionsList";
 import { EnhancedPatientProfile } from "@/components/patient/EnhancedPatientProfile";
 import { MessagingInterface } from "@/components/shared/MessagingInterface";
-import { DashboardSidebar } from "@/components/shared/DashboardSidebar";
 import { NotificationPanel } from "@/components/shared/NotificationPanel";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -66,8 +65,8 @@ const PatientDashboard = () => {
         return (
           <div className="space-y-4 lg:space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <h2 className="text-2xl lg:text-3xl font-bold text-slate-800">
-                Welcome, {user?.fullName || "Patient"}
+              <h2 className="text-xl lg:text-3xl font-bold text-slate-800">
+                Welcome, {user?.fullName || "Demo Patient"}
               </h2>
               <Button 
                 className="bg-gradient-to-r from-blue-600 to-teal-600 text-white hover:opacity-90 transition-opacity w-full sm:w-auto"
@@ -125,7 +124,7 @@ const PatientDashboard = () => {
         return (
           <div className="space-y-4 lg:space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <h2 className="text-2xl lg:text-3xl font-bold text-slate-800">My Appointments</h2>
+              <h2 className="text-xl lg:text-3xl font-bold text-slate-800">My Appointments</h2>
               <Button 
                 className="bg-gradient-to-r from-blue-600 to-teal-600 text-white hover:opacity-90 transition-opacity w-full sm:w-auto"
                 onClick={() => setActiveTab("book")}
@@ -140,14 +139,14 @@ const PatientDashboard = () => {
       case "prescriptions":
         return (
           <div className="space-y-4 lg:space-y-6">
-            <h2 className="text-2xl lg:text-3xl font-bold text-slate-800">My Prescriptions</h2>
+            <h2 className="text-xl lg:text-3xl font-bold text-slate-800">My Prescriptions</h2>
             <PrescriptionsList />
           </div>
         );
       case "messages":
         return (
           <div className="space-y-4 lg:space-y-6">
-            <h2 className="text-2xl lg:text-3xl font-bold text-slate-800">Messages</h2>
+            <h2 className="text-xl lg:text-3xl font-bold text-slate-800">Messages</h2>
             <MessagingInterface userType="patient" targetUserType="doctor" />
           </div>
         );
@@ -171,20 +170,18 @@ const PatientDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-teal-50">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-blue-100 sticky top-0 z-40">
-        <div className="container mx-auto px-3 lg:px-6 py-3 lg:py-4">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-blue-100 sticky top-0 z-50">
+        <div className="container mx-auto px-4 lg:px-6 py-3 lg:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 lg:space-x-3">
-              {isMobile && (
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setSidebarOpen(!sidebarOpen)}
-                  className="p-2"
-                >
-                  <Menu className="h-5 w-5" />
-                </Button>
-              )}
+            <div className="flex items-center space-x-3">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="p-2 md:hidden"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
               <div className="h-8 w-8 lg:h-10 lg:w-10 bg-gradient-to-r from-blue-600 to-teal-600 rounded-xl flex items-center justify-center">
                 <div className="h-4 w-4 lg:h-6 lg:w-6 text-white font-bold text-xs lg:text-base">AM</div>
               </div>
@@ -224,9 +221,9 @@ const PatientDashboard = () => {
         </div>
       </header>
 
-      <div className="flex">
+      <div className="flex relative">
         {/* Mobile Sidebar Overlay */}
-        {isMobile && sidebarOpen && (
+        {sidebarOpen && isMobile && (
           <div 
             className="fixed inset-0 bg-black bg-opacity-50 z-30"
             onClick={() => setSidebarOpen(false)}
@@ -234,21 +231,71 @@ const PatientDashboard = () => {
         )}
 
         {/* Sidebar */}
-        <div className={`${isMobile ? 'fixed' : 'relative'} ${isMobile && !sidebarOpen ? '-translate-x-full' : 'translate-x-0'} transition-transform duration-300 z-40`}>
-          <DashboardSidebar
-            items={sidebarItems}
-            activeTab={activeTab}
-            onTabChange={(tab) => {
-              setActiveTab(tab);
-              if (isMobile) setSidebarOpen(false);
-            }}
-            userRole="patient"
-            userName={user?.fullName}
-          />
-        </div>
+        <aside
+          className={`${
+            isMobile 
+              ? 'fixed' 
+              : 'relative'
+          } ${
+            isMobile && !sidebarOpen 
+              ? '-translate-x-full' 
+              : 'translate-x-0'
+          } transition-transform duration-300 z-40 bg-white/90 backdrop-blur-sm border-r border-slate-200 h-screen ${
+            isMobile ? 'w-64' : 'w-16 md:w-64'
+          }`}
+        >
+          {/* Sidebar Header */}
+          <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+            <div className={`${isMobile ? 'block' : 'hidden md:block'} font-semibold text-slate-800`}>
+              Navigation
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setSidebarOpen(false)}
+              className={`${isMobile ? 'block' : 'hidden'} p-1`}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Sidebar Items */}
+          <nav className="p-2 space-y-1">
+            {sidebarItems.map((item) => {
+              const isActive = activeTab === item.id;
+              const Icon = item.icon;
+              
+              return (
+                <Button
+                  key={item.id}
+                  variant="ghost"
+                  className={`w-full justify-start ${
+                    isActive 
+                      ? 'bg-blue-50 text-blue-600 border-blue-200'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  } ${isMobile ? 'px-4' : 'px-2 md:px-4'}`}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    if (isMobile) setSidebarOpen(false);
+                  }}
+                >
+                  <Icon className={`h-5 w-5 ${isMobile ? 'mr-3' : 'mr-0 md:mr-3'}`} />
+                  <span className={`${isMobile ? 'block' : 'hidden md:block'}`}>
+                    {item.label}
+                  </span>
+                  {item.badge && item.badge > 0 && (
+                    <span className={`ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ${isMobile ? 'block' : 'hidden md:block'}`}>
+                      {item.badge}
+                    </span>
+                  )}
+                </Button>
+              );
+            })}
+          </nav>
+        </aside>
 
         {/* Main Content */}
-        <main className={`flex-1 p-3 lg:p-6 min-h-screen ${isMobile ? 'w-full' : ''}`}>
+        <main className={`flex-1 p-4 lg:p-6 min-h-screen ${isMobile ? 'w-full' : ''}`}>
           {renderContent()}
         </main>
       </div>

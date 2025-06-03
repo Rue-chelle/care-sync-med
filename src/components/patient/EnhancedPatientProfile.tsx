@@ -31,177 +31,60 @@ interface MedicalHistory {
 }
 
 export const EnhancedPatientProfile = () => {
-  const [profile, setProfile] = useState<PatientProfile | null>(null);
-  const [medicalHistory, setMedicalHistory] = useState<MedicalHistory[]>([]);
+  const [profile, setProfile] = useState<PatientProfile>({
+    id: 'demo-patient-id',
+    full_name: 'John Doe',
+    phone: '+1 (555) 123-4567',
+    address: '123 Main Street, Anytown, ST 12345',
+    date_of_birth: '1990-01-15',
+    gender: 'Male',
+    emergency_contact_name: 'Jane Doe',
+    emergency_contact_phone: '+1 (555) 987-6543',
+  });
+  const [medicalHistory] = useState<MedicalHistory[]>([
+    {
+      id: '1',
+      diagnosis: 'Annual Health Checkup',
+      treatment_plan: 'Continue regular exercise and balanced diet. Schedule follow-up in 6 months.',
+      created_at: '2024-01-15T10:00:00Z',
+      doctor_name: 'Dr. Smith'
+    },
+    {
+      id: '2',
+      diagnosis: 'Mild Hypertension',
+      treatment_plan: 'Prescribed Lisinopril 10mg daily. Monitor blood pressure weekly.',
+      created_at: '2023-08-20T14:30:00Z',
+      doctor_name: 'Dr. Johnson'
+    },
+    {
+      id: '3',
+      diagnosis: 'Seasonal Allergies',
+      treatment_plan: 'Use antihistamines as needed. Consider allergy testing if symptoms worsen.',
+      created_at: '2023-04-10T09:15:00Z',
+      doctor_name: 'Dr. Williams'
+    }
+  ]);
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState<Partial<PatientProfile>>({});
-  const [isLoading, setIsLoading] = useState(true);
+  const [editForm, setEditForm] = useState<Partial<PatientProfile>>(profile);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchProfile();
-    fetchMedicalHistory();
-  }, []);
+    setEditForm(profile);
+  }, [profile]);
 
-  const fetchProfile = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+  const handleSave = () => {
+    setProfile({ ...profile, ...editForm } as PatientProfile);
+    setIsEditing(false);
 
-      const { data, error } = await supabase
-        .from('patients')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error) {
-        // Create demo profile if none exists
-        const demoProfile = {
-          id: user.id,
-          full_name: user.email?.split('@')[0] || 'Demo Patient',
-          phone: '+1 (555) 123-4567',
-          address: '123 Main Street, Anytown, ST 12345',
-          date_of_birth: '1990-01-15',
-          gender: 'prefer-not-to-say',
-          emergency_contact_name: 'Emergency Contact',
-          emergency_contact_phone: '+1 (555) 987-6543',
-        };
-        setProfile(demoProfile);
-        setEditForm(demoProfile);
-      } else {
-        setProfile(data);
-        setEditForm(data);
-      }
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-      // Set demo data as fallback
-      const demoProfile = {
-        id: 'demo-id',
-        full_name: 'Demo Patient',
-        phone: '+1 (555) 123-4567',
-        address: '123 Main Street, Anytown, ST 12345',
-        date_of_birth: '1990-01-15',
-        gender: 'prefer-not-to-say',
-        emergency_contact_name: 'Emergency Contact',
-        emergency_contact_phone: '+1 (555) 987-6543',
-      };
-      setProfile(demoProfile);
-      setEditForm(demoProfile);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchMedicalHistory = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: patientData } = await supabase
-        .from('patients')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!patientData) {
-        // Set demo medical history
-        setMedicalHistory([
-          {
-            id: '1',
-            diagnosis: 'Annual Health Checkup',
-            treatment_plan: 'Continue regular exercise and balanced diet. Schedule follow-up in 6 months.',
-            created_at: '2024-01-15T10:00:00Z',
-            doctor_name: 'Dr. Smith'
-          },
-          {
-            id: '2',
-            diagnosis: 'Mild Hypertension',
-            treatment_plan: 'Prescribed Lisinopril 10mg daily. Monitor blood pressure weekly.',
-            created_at: '2023-08-20T14:30:00Z',
-            doctor_name: 'Dr. Johnson'
-          }
-        ]);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('medical_records')
-        .select(`
-          id,
-          diagnosis,
-          treatment_plan,
-          created_at,
-          doctors!inner (
-            full_name
-          )
-        `)
-        .eq('patient_id', patientData.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      
-      const formattedHistory = data?.map(record => ({
-        id: record.id,
-        diagnosis: record.diagnosis,
-        treatment_plan: record.treatment_plan,
-        created_at: record.created_at,
-        doctor_name: record.doctors.full_name
-      })) || [];
-
-      setMedicalHistory(formattedHistory);
-    } catch (error) {
-      console.error('Error fetching medical history:', error);
-      // Set demo medical history as fallback
-      setMedicalHistory([
-        {
-          id: '1',
-          diagnosis: 'Annual Health Checkup',
-          treatment_plan: 'Continue regular exercise and balanced diet. Schedule follow-up in 6 months.',
-          created_at: '2024-01-15T10:00:00Z',
-          doctor_name: 'Dr. Smith'
-        },
-        {
-          id: '2',
-          diagnosis: 'Mild Hypertension',
-          treatment_plan: 'Prescribed Lisinopril 10mg daily. Monitor blood pressure weekly.',
-          created_at: '2023-08-20T14:30:00Z',
-          doctor_name: 'Dr. Johnson'
-        }
-      ]);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!profile) return;
-
-    try {
-      const { error } = await supabase
-        .from('patients')
-        .update(editForm)
-        .eq('id', profile.id);
-
-      if (error) throw error;
-
-      setProfile({ ...profile, ...editForm } as PatientProfile);
-      setIsEditing(false);
-
-      toast({
-        title: "Success",
-        description: "Profile updated successfully",
-      });
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast({
-        title: "Profile Updated",
-        description: "Your profile changes have been saved (demo mode)",
-      });
-      setProfile({ ...profile, ...editForm } as PatientProfile);
-      setIsEditing(false);
-    }
+    toast({
+      title: "Profile Updated",
+      description: "Your profile changes have been saved successfully (demo mode)",
+    });
   };
 
   const handleCancel = () => {
-    setEditForm(profile || {});
+    setEditForm(profile);
     setIsEditing(false);
   };
 
@@ -216,25 +99,10 @@ export const EnhancedPatientProfile = () => {
     return age;
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8 lg:py-12">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading profile...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!profile) {
-    return <div className="text-center py-8">Profile not found</div>;
-  }
-
   return (
-    <div className="space-y-4 lg:space-y-6 max-w-full">
+    <div className="space-y-4 lg:space-y-6 max-w-full px-2 sm:px-0">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h2 className="text-2xl lg:text-3xl font-bold text-slate-800">My Profile</h2>
+        <h2 className="text-xl lg:text-3xl font-bold text-slate-800">My Profile</h2>
         {!isEditing ? (
           <Button onClick={() => setIsEditing(true)} className="bg-gradient-to-r from-blue-600 to-teal-600 text-white w-full sm:w-auto">
             <Edit className="h-4 w-4 mr-2" />
@@ -255,10 +123,10 @@ export const EnhancedPatientProfile = () => {
       </div>
 
       <Tabs defaultValue="personal" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-4 lg:mb-6">
-          <TabsTrigger value="personal" className="text-xs lg:text-sm">Personal</TabsTrigger>
-          <TabsTrigger value="medical" className="text-xs lg:text-sm">Medical History</TabsTrigger>
-          <TabsTrigger value="emergency" className="text-xs lg:text-sm">Emergency</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 mb-4 lg:mb-6 h-auto">
+          <TabsTrigger value="personal" className="text-xs sm:text-sm px-2 py-2">Personal</TabsTrigger>
+          <TabsTrigger value="medical" className="text-xs sm:text-sm px-2 py-2">Medical History</TabsTrigger>
+          <TabsTrigger value="emergency" className="text-xs sm:text-sm px-2 py-2">Emergency</TabsTrigger>
         </TabsList>
 
         <TabsContent value="personal" className="space-y-4 lg:space-y-6">
@@ -281,7 +149,7 @@ export const EnhancedPatientProfile = () => {
                       className="text-sm lg:text-base"
                     />
                   ) : (
-                    <p className="text-gray-900 font-medium p-2 bg-gray-50 rounded text-sm lg:text-base">{profile.full_name}</p>
+                    <p className="text-gray-900 font-medium p-3 bg-gray-50 rounded text-sm lg:text-base border">{profile.full_name}</p>
                   )}
                 </div>
 
@@ -297,7 +165,7 @@ export const EnhancedPatientProfile = () => {
                       className="text-sm lg:text-base"
                     />
                   ) : (
-                    <p className="text-gray-900 p-2 bg-gray-50 rounded text-sm lg:text-base">{profile.phone || 'Not provided'}</p>
+                    <p className="text-gray-900 p-3 bg-gray-50 rounded text-sm lg:text-base border">{profile.phone || 'Not provided'}</p>
                   )}
                 </div>
 
@@ -314,12 +182,12 @@ export const EnhancedPatientProfile = () => {
                       className="text-sm lg:text-base"
                     />
                   ) : (
-                    <div className="p-2 bg-gray-50 rounded">
+                    <div className="p-3 bg-gray-50 rounded border">
                       <p className="text-gray-900 text-sm lg:text-base">
                         {profile.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString() : 'Not provided'}
                       </p>
                       {profile.date_of_birth && (
-                        <Badge variant="outline" className="mt-1">
+                        <Badge variant="outline" className="mt-2">
                           Age: {calculateAge(profile.date_of_birth)} years
                         </Badge>
                       )}
@@ -336,7 +204,7 @@ export const EnhancedPatientProfile = () => {
                       className="text-sm lg:text-base"
                     />
                   ) : (
-                    <p className="text-gray-900 p-2 bg-gray-50 rounded text-sm lg:text-base">{profile.gender || 'Not provided'}</p>
+                    <p className="text-gray-900 p-3 bg-gray-50 rounded text-sm lg:text-base border">{profile.gender || 'Not provided'}</p>
                   )}
                 </div>
               </div>
@@ -354,7 +222,7 @@ export const EnhancedPatientProfile = () => {
                     className="text-sm lg:text-base"
                   />
                 ) : (
-                  <p className="text-gray-900 p-2 bg-gray-50 rounded text-sm lg:text-base">{profile.address || 'Not provided'}</p>
+                  <p className="text-gray-900 p-3 bg-gray-50 rounded text-sm lg:text-base border">{profile.address || 'Not provided'}</p>
                 )}
               </div>
             </CardContent>
@@ -371,34 +239,30 @@ export const EnhancedPatientProfile = () => {
               <CardDescription className="text-sm lg:text-base">Your medical records and treatment history</CardDescription>
             </CardHeader>
             <CardContent>
-              {medicalHistory.length === 0 ? (
-                <p className="text-center text-gray-500 py-6 lg:py-8 text-sm lg:text-base">No medical history available</p>
-              ) : (
-                <div className="space-y-4">
-                  {medicalHistory.map((record) => (
-                    <Card key={record.id} className="border-l-4 border-blue-500">
-                      <CardContent className="p-3 lg:p-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2">
-                          <Badge variant="outline" className="self-start text-xs">
-                            {new Date(record.created_at).toLocaleDateString()}
-                          </Badge>
-                          <p className="text-xs lg:text-sm text-gray-500">Dr. {record.doctor_name}</p>
+              <div className="space-y-4">
+                {medicalHistory.map((record) => (
+                  <Card key={record.id} className="border-l-4 border-blue-500">
+                    <CardContent className="p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2">
+                        <Badge variant="outline" className="self-start text-xs">
+                          {new Date(record.created_at).toLocaleDateString()}
+                        </Badge>
+                        <p className="text-xs lg:text-sm text-gray-500">Dr. {record.doctor_name}</p>
+                      </div>
+                      <div className="space-y-3">
+                        <div>
+                          <h4 className="font-semibold text-sm lg:text-base text-blue-700 mb-1">Diagnosis</h4>
+                          <p className="text-gray-700 text-sm lg:text-base">{record.diagnosis}</p>
                         </div>
-                        <div className="space-y-2">
-                          <div>
-                            <h4 className="font-medium text-sm lg:text-base">Diagnosis</h4>
-                            <p className="text-gray-700 text-sm lg:text-base">{record.diagnosis}</p>
-                          </div>
-                          <div>
-                            <h4 className="font-medium text-sm lg:text-base">Treatment Plan</h4>
-                            <p className="text-gray-700 text-sm lg:text-base">{record.treatment_plan}</p>
-                          </div>
+                        <div>
+                          <h4 className="font-semibold text-sm lg:text-base text-green-700 mb-1">Treatment Plan</h4>
+                          <p className="text-gray-700 text-sm lg:text-base">{record.treatment_plan}</p>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -423,7 +287,7 @@ export const EnhancedPatientProfile = () => {
                       className="text-sm lg:text-base"
                     />
                   ) : (
-                    <p className="text-gray-900 p-2 bg-gray-50 rounded text-sm lg:text-base">{profile.emergency_contact_name || 'Not provided'}</p>
+                    <p className="text-gray-900 p-3 bg-gray-50 rounded text-sm lg:text-base border">{profile.emergency_contact_name || 'Not provided'}</p>
                   )}
                 </div>
 
@@ -436,7 +300,7 @@ export const EnhancedPatientProfile = () => {
                       className="text-sm lg:text-base"
                     />
                   ) : (
-                    <p className="text-gray-900 p-2 bg-gray-50 rounded text-sm lg:text-base">{profile.emergency_contact_phone || 'Not provided'}</p>
+                    <p className="text-gray-900 p-3 bg-gray-50 rounded text-sm lg:text-base border">{profile.emergency_contact_phone || 'Not provided'}</p>
                   )}
                 </div>
               </div>

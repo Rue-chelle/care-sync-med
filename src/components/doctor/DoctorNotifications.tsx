@@ -17,53 +17,58 @@ interface Notification {
 }
 
 export const DoctorNotifications = () => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [notifications, setNotifications] = useState<Notification[]>([
+    {
+      id: '1',
+      title: 'New Appointment Request',
+      message: 'John Doe has requested an appointment for tomorrow at 2:00 PM',
+      type: 'info',
+      created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
+      read: false
+    },
+    {
+      id: '2',
+      title: 'Lab Results Available',
+      message: 'Blood work results for Alice Smith are now available for review',
+      type: 'success',
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
+      read: false
+    },
+    {
+      id: '3',
+      title: 'Prescription Refill Request',
+      message: 'Michael Johnson has requested a refill for Lisinopril',
+      type: 'warning',
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(), // 4 hours ago
+      read: true
+    },
+    {
+      id: '4',
+      title: 'Appointment Cancelled',
+      message: 'Sarah Wilson has cancelled her appointment scheduled for Friday',
+      type: 'error',
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(), // 6 hours ago
+      read: true
+    },
+    {
+      id: '5',
+      title: 'System Maintenance',
+      message: 'Scheduled system maintenance will occur this weekend from 2 AM to 4 AM',
+      type: 'info',
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
+      read: true
+    }
+  ]);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchNotifications();
+    // Using demo data instead of fetching from database
+    setIsLoading(false);
   }, []);
-
-  const fetchNotifications = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (error) throw error;
-      
-      // Type-safe conversion of the data
-      const typedNotifications: Notification[] = (data || []).map(item => ({
-        ...item,
-        type: ['info', 'warning', 'success', 'error'].includes(item.type) 
-          ? item.type as 'info' | 'warning' | 'success' | 'error'
-          : 'info'
-      }));
-      
-      setNotifications(typedNotifications);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const markAsRead = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('id', id);
-
-      if (error) throw error;
-
       setNotifications(prev => 
         prev.map(notif => 
           notif.id === id ? { ...notif, read: true } : notif
@@ -75,6 +80,20 @@ export const DoctorNotifications = () => {
       });
     } catch (error) {
       console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      setNotifications(prev => 
+        prev.map(notif => ({ ...notif, read: true }))
+      );
+
+      toast({
+        title: "All notifications marked as read",
+      });
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
     }
   };
 
@@ -96,41 +115,63 @@ export const DoctorNotifications = () => {
     }
   };
 
+  const unreadCount = notifications.filter(n => !n.read).length;
+
   if (isLoading) {
     return <div>Loading notifications...</div>;
   }
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-3xl font-bold text-slate-800">Notifications</h2>
+    <div className="space-y-4 lg:space-y-6 max-w-full px-2 sm:px-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl lg:text-3xl font-bold text-slate-800">Notifications</h2>
+          {unreadCount > 0 && (
+            <p className="text-sm lg:text-base text-gray-600 mt-1">
+              You have {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
+            </p>
+          )}
+        </div>
+        {unreadCount > 0 && (
+          <Button 
+            onClick={markAllAsRead}
+            variant="outline"
+            className="w-full sm:w-auto"
+          >
+            Mark All as Read
+          </Button>
+        )}
+      </div>
       
       <div className="space-y-4">
         {notifications.length === 0 ? (
           <Card>
             <CardContent className="p-6 text-center">
-              <Bell className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p className="text-gray-500">No notifications yet</p>
+              <Bell className="h-8 w-8 lg:h-12 lg:w-12 mx-auto mb-4 text-gray-400" />
+              <p className="text-gray-500 text-sm lg:text-base">No notifications yet</p>
             </CardContent>
           </Card>
         ) : (
           notifications.map((notification) => (
             <Card key={notification.id} className={`transition-all hover:shadow-md ${!notification.read ? 'border-l-4 border-blue-500 bg-blue-50/30' : ''}`}>
               <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-3 flex-1">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start space-x-3 flex-1 min-w-0">
                     {getIconForType(notification.type)}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-medium text-slate-800">{notification.title}</h4>
-                        <Badge className={getBadgeColor(notification.type)}>
-                          {notification.type}
-                        </Badge>
-                        {!notification.read && (
-                          <Badge className="bg-blue-500 text-white">New</Badge>
-                        )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
+                        <h4 className="font-medium text-slate-800 text-sm lg:text-base truncate">{notification.title}</h4>
+                        <div className="flex gap-2 flex-shrink-0">
+                          <Badge className={`${getBadgeColor(notification.type)} text-xs`}>
+                            {notification.type}
+                          </Badge>
+                          {!notification.read && (
+                            <Badge className="bg-blue-500 text-white text-xs">New</Badge>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-gray-600 text-sm mb-2">{notification.message}</p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-gray-600 text-sm lg:text-base mb-2 break-words">{notification.message}</p>
+                      <p className="text-xs lg:text-sm text-gray-400">
                         {new Date(notification.created_at).toLocaleString()}
                       </p>
                     </div>
@@ -140,6 +181,7 @@ export const DoctorNotifications = () => {
                       size="sm" 
                       variant="outline"
                       onClick={() => markAsRead(notification.id)}
+                      className="flex-shrink-0 text-xs lg:text-sm"
                     >
                       Mark as read
                     </Button>

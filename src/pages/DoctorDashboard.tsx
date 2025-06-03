@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Users, Bell, MessageSquare, FileText, BarChart3, Settings, LogOut, Upload } from "lucide-react";
+import { Calendar, Users, Bell, MessageSquare, FileText, BarChart3, Settings, LogOut, Upload, Menu, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserStore } from "@/stores/userStore";
@@ -15,9 +15,10 @@ import { MessagingInterface } from "@/components/shared/MessagingInterface";
 import { DoctorAnalytics } from "@/components/doctor/DoctorAnalytics";
 import { AvailabilitySettings } from "@/components/doctor/AvailabilitySettings";
 import { FileUpload } from "@/components/doctor/FileUpload";
-import { DashboardSidebar } from "@/components/shared/DashboardSidebar";
 import { DoctorNotifications } from "@/components/doctor/DoctorNotifications";
 import { EnhancedScheduleModal } from "@/components/doctor/EnhancedScheduleModal";
+import { NotificationPanel } from "@/components/shared/NotificationPanel";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface DoctorProfile {
   id: string;
@@ -34,15 +35,18 @@ const DoctorDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [doctorProfile, setDoctorProfile] = useState<DoctorProfile | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
   const [todayStats, setTodayStats] = useState({
-    totalAppointments: 0,
-    completedAppointments: 0,
-    pendingAppointments: 0,
-    unreadMessages: 0
+    totalAppointments: 8,
+    completedAppointments: 5,
+    pendingAppointments: 3,
+    unreadMessages: 2
   });
   const { toast } = useToast();
   const { logout, user } = useUserStore();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetchDoctorProfile();
@@ -51,69 +55,29 @@ const DoctorDashboard = () => {
 
   const fetchDoctorProfile = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('doctors')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching doctor profile:', error);
-        return;
-      }
-
-      setDoctorProfile(data);
+      setDoctorProfile({
+        id: 'demo-doctor-id',
+        full_name: 'Dr. Sarah Johnson',
+        specialization: 'Cardiology',
+        email: 'sarah.johnson@aloramedapp.com',
+        phone: '+1 (555) 123-4567',
+        bio: 'Experienced cardiologist with over 10 years of practice.',
+        license_number: 'MD123456',
+        years_experience: 12
+      });
     } catch (error) {
       console.error('Error:', error);
     }
   };
 
   const fetchTodayStats = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: doctorData } = await supabase
-        .from('doctors')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!doctorData) return;
-
-      const today = new Date().toISOString().split('T')[0];
-
-      // Fetch today's appointments
-      const { data: appointments } = await supabase
-        .from('appointments')
-        .select('status')
-        .eq('doctor_id', doctorData.id)
-        .eq('appointment_date', today);
-
-      // Fetch unread messages
-      const { data: messages } = await supabase
-        .from('messages')
-        .select('id')
-        .eq('recipient_id', user.id)
-        .is('read_at', null);
-
-      const totalAppointments = appointments?.length || 0;
-      const completedAppointments = appointments?.filter(a => a.status === 'completed').length || 0;
-      const pendingAppointments = appointments?.filter(a => a.status === 'scheduled').length || 0;
-      const unreadMessages = messages?.length || 0;
-
-      setTodayStats({
-        totalAppointments,
-        completedAppointments,
-        pendingAppointments,
-        unreadMessages
-      });
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
+    // Using demo data for now
+    setTodayStats({
+      totalAppointments: 8,
+      completedAppointments: 5,
+      pendingAppointments: 3,
+      unreadMessages: 2
+    });
   };
 
   const handleLogout = async () => {
@@ -161,11 +125,11 @@ const DoctorDashboard = () => {
     switch (activeTab) {
       case "dashboard":
         return (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-3xl font-bold text-slate-800">Dashboard Overview</h2>
+          <div className="space-y-4 lg:space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <h2 className="text-xl lg:text-3xl font-bold text-slate-800">Dashboard Overview</h2>
               <Button
-                className="bg-gradient-to-r from-blue-600 to-teal-600 text-white"
+                className="bg-gradient-to-r from-blue-600 to-teal-600 text-white w-full sm:w-auto"
                 onClick={() => setShowScheduleModal(true)}
               >
                 <Calendar className="h-4 w-4 mr-2" />
@@ -173,47 +137,47 @@ const DoctorDashboard = () => {
               </Button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-2xl font-bold text-blue-600">
+                  <CardTitle className="text-xl lg:text-2xl font-bold text-blue-600">
                     {todayStats.totalAppointments}
                   </CardTitle>
-                  <CardDescription>Today's Appointments</CardDescription>
+                  <CardDescription className="text-sm lg:text-base">Today's Appointments</CardDescription>
                 </CardHeader>
               </Card>
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-2xl font-bold text-green-600">
+                  <CardTitle className="text-xl lg:text-2xl font-bold text-green-600">
                     {todayStats.completedAppointments}
                   </CardTitle>
-                  <CardDescription>Completed</CardDescription>
+                  <CardDescription className="text-sm lg:text-base">Completed</CardDescription>
                 </CardHeader>
               </Card>
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-2xl font-bold text-orange-600">
+                  <CardTitle className="text-xl lg:text-2xl font-bold text-orange-600">
                     {todayStats.pendingAppointments}
                   </CardTitle>
-                  <CardDescription>Pending</CardDescription>
+                  <CardDescription className="text-sm lg:text-base">Pending</CardDescription>
                 </CardHeader>
               </Card>
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-2xl font-bold text-red-600">
+                  <CardTitle className="text-xl lg:text-2xl font-bold text-red-600">
                     {todayStats.unreadMessages}
                   </CardTitle>
-                  <CardDescription>Unread Messages</CardDescription>
+                  <CardDescription className="text-sm lg:text-base">Unread Messages</CardDescription>
                 </CardHeader>
               </Card>
             </div>
 
             <Card>
               <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
+                <CardTitle className="text-lg lg:text-xl">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <Button 
                     className="bg-gradient-to-r from-blue-600 to-teal-600 text-white"
                     onClick={() => setActiveTab("appointments")}
@@ -264,52 +228,134 @@ const DoctorDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-teal-50">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-blue-100 sticky top-0 z-40">
-        <div className="px-4 lg:px-6 py-4">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-blue-100 sticky top-0 z-50">
+        <div className="container mx-auto px-4 lg:px-6 py-3 lg:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 bg-gradient-to-r from-blue-600 to-teal-600 rounded-xl flex items-center justify-center">
-                <div className="h-6 w-6 text-white font-bold">AM</div>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="p-2 md:hidden"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+              <div className="h-8 w-8 lg:h-10 lg:w-10 bg-gradient-to-r from-blue-600 to-teal-600 rounded-xl flex items-center justify-center">
+                <div className="h-4 w-4 lg:h-6 lg:w-6 text-white font-bold text-xs lg:text-base">AM</div>
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
+                <h1 className="text-lg lg:text-2xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
                   AloraMed Doctor
                 </h1>
-                <p className="text-sm text-slate-600">
+                <p className="text-xs lg:text-sm text-slate-600">
                   Welcome, Dr. {doctorProfile?.full_name || 'Doctor'}
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <Button variant="outline" size="sm" className="relative">
-                <Bell className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Notifications</span>
+            <div className="flex items-center space-x-2 lg:space-x-3">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="relative p-2 lg:px-3 lg:py-2"
+                onClick={() => setNotificationOpen(true)}
+              >
+                <Bell className="h-4 w-4 mr-0 lg:mr-2" />
+                <span className="hidden lg:inline">Notifications</span>
                 {todayStats.unreadMessages > 0 && (
-                  <Badge className="ml-2 bg-red-500 text-white">
+                  <span className="absolute -top-1 -right-1 lg:-top-2 lg:-right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 lg:h-5 lg:w-5 flex items-center justify-center">
                     {todayStats.unreadMessages}
-                  </Badge>
+                  </span>
                 )}
               </Button>
-              <Button variant="outline" size="sm" onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Logout</span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleLogout}
+                className="p-2 lg:px-3 lg:py-2"
+              >
+                <LogOut className="h-4 w-4 mr-0 lg:mr-2" />
+                <span className="hidden lg:inline">Logout</span>
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="flex">
-        <DashboardSidebar
-          items={sidebarItems}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          userRole="doctor"
-          userName={doctorProfile?.full_name}
-        />
+      <div className="flex relative">
+        {/* Mobile Sidebar Overlay */}
+        {sidebarOpen && isMobile && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-30"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* Sidebar */}
+        <aside
+          className={`${
+            isMobile 
+              ? 'fixed' 
+              : 'relative'
+          } ${
+            isMobile && !sidebarOpen 
+              ? '-translate-x-full' 
+              : 'translate-x-0'
+          } transition-transform duration-300 z-40 bg-white/90 backdrop-blur-sm border-r border-slate-200 h-screen ${
+            isMobile ? 'w-64' : 'w-16 md:w-64'
+          }`}
+        >
+          {/* Sidebar Header */}
+          <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+            <div className={`${isMobile ? 'block' : 'hidden md:block'} font-semibold text-slate-800`}>
+              Navigation
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setSidebarOpen(false)}
+              className={`${isMobile ? 'block' : 'hidden'} p-1`}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Sidebar Items */}
+          <nav className="p-2 space-y-1">
+            {sidebarItems.map((item) => {
+              const isActive = activeTab === item.id;
+              const Icon = item.icon;
+              
+              return (
+                <Button
+                  key={item.id}
+                  variant="ghost"
+                  className={`w-full justify-start ${
+                    isActive 
+                      ? 'bg-blue-50 text-blue-600 border-blue-200'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  } ${isMobile ? 'px-4' : 'px-2 md:px-4'}`}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    if (isMobile) setSidebarOpen(false);
+                  }}
+                >
+                  <Icon className={`h-5 w-5 ${isMobile ? 'mr-3' : 'mr-0 md:mr-3'}`} />
+                  <span className={`${isMobile ? 'block' : 'hidden md:block'}`}>
+                    {item.label}
+                  </span>
+                  {item.badge && item.badge > 0 && (
+                    <span className={`ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ${isMobile ? 'block' : 'hidden md:block'}`}>
+                      {item.badge}
+                    </span>
+                  )}
+                </Button>
+              );
+            })}
+          </nav>
+        </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 lg:p-6 relative z-10">
+        <main className={`flex-1 p-4 lg:p-6 min-h-screen ${isMobile ? 'w-full' : ''}`}>
           {renderContent()}
         </main>
       </div>
@@ -319,11 +365,16 @@ const DoctorDashboard = () => {
         isOpen={showScheduleModal}
         onClose={() => setShowScheduleModal(false)}
         onSchedule={() => {
-          // Refresh appointments if we're on that tab
           if (activeTab === "appointments") {
             window.location.reload();
           }
         }}
+      />
+
+      {/* Notification Panel */}
+      <NotificationPanel
+        isOpen={notificationOpen}
+        onClose={() => setNotificationOpen(false)}
       />
     </div>
   );

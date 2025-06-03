@@ -1,438 +1,355 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Search, Filter, Eye, Edit, FileText, Calendar, User } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { FolderOpen, Search, Eye, Calendar, FileText, Activity, Phone, Mail, MapPin } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const PatientRecords = () => {
-  const [patients, setPatients] = useState<any[]>([]);
-  const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [appointments, setAppointments] = useState<any[]>([]);
-  const [prescriptions, setPrescriptions] = useState<any[]>([]);
-  const [medicalRecords, setMedicalRecords] = useState<any[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedPatient, setSelectedPatient] = useState(null);
 
-  const { toast } = useToast();
-
-  useEffect(() => {
-    fetchPatients();
-  }, []);
-
-  useEffect(() => {
-    if (selectedPatient) {
-      fetchPatientData(selectedPatient.id);
+  // Demo patient data
+  const patients = [
+    {
+      id: "1",
+      name: "John Smith",
+      age: 45,
+      gender: "Male",
+      phone: "+1 (555) 123-4567",
+      email: "john.smith@email.com",
+      lastVisit: "2024-01-20",
+      status: "active",
+      conditions: ["Hypertension", "Diabetes"],
+      allergies: ["Penicillin"],
+      medications: ["Metformin", "Lisinopril"],
+      emergencyContact: "Jane Smith - +1 (555) 123-4568",
+      address: "123 Main St, New York, NY 10001",
+      insurance: "Blue Cross Blue Shield",
+      visitHistory: [
+        { date: "2024-01-20", doctor: "Dr. Sarah Johnson", reason: "Regular checkup", diagnosis: "Stable condition" },
+        { date: "2024-01-05", doctor: "Dr. Michael Chen", reason: "Blood pressure monitoring", diagnosis: "Hypertension under control" },
+        { date: "2023-12-15", doctor: "Dr. Sarah Johnson", reason: "Diabetes management", diagnosis: "Good glucose control" }
+      ]
+    },
+    {
+      id: "2",
+      name: "Emily Johnson",
+      age: 32,
+      gender: "Female",
+      phone: "+1 (555) 234-5678",
+      email: "emily.johnson@email.com",
+      lastVisit: "2024-01-18",
+      status: "active",
+      conditions: ["Asthma"],
+      allergies: ["Shellfish", "Pollen"],
+      medications: ["Albuterol Inhaler"],
+      emergencyContact: "Robert Johnson - +1 (555) 234-5679",
+      address: "456 Oak Ave, Los Angeles, CA 90210",
+      insurance: "Aetna Health",
+      visitHistory: [
+        { date: "2024-01-18", doctor: "Dr. Lisa Wang", reason: "Asthma follow-up", diagnosis: "Well controlled asthma" },
+        { date: "2024-01-03", doctor: "Dr. Lisa Wang", reason: "Respiratory symptoms", diagnosis: "Mild asthma exacerbation" }
+      ]
+    },
+    {
+      id: "3",
+      name: "Michael Brown",
+      age: 58,
+      gender: "Male",
+      phone: "+1 (555) 345-6789",
+      email: "michael.brown@email.com",
+      lastVisit: "2024-01-15",
+      status: "inactive",
+      conditions: ["Heart Disease", "High Cholesterol"],
+      allergies: ["None known"],
+      medications: ["Atorvastatin", "Aspirin"],
+      emergencyContact: "Susan Brown - +1 (555) 345-6790",
+      address: "789 Pine St, Chicago, IL 60601",
+      insurance: "Medicare",
+      visitHistory: [
+        { date: "2024-01-15", doctor: "Dr. James Wilson", reason: "Cardiac consultation", diagnosis: "Stable coronary artery disease" },
+        { date: "2023-12-20", doctor: "Dr. James Wilson", reason: "Cholesterol management", diagnosis: "Improving lipid profile" }
+      ]
+    },
+    {
+      id: "4",
+      name: "Sarah Davis",
+      age: 28,
+      gender: "Female",
+      phone: "+1 (555) 456-7890",
+      email: "sarah.davis@email.com",
+      lastVisit: "2024-01-22",
+      status: "active",
+      conditions: ["Pregnancy - 2nd trimester"],
+      allergies: ["Latex"],
+      medications: ["Prenatal vitamins", "Folic acid"],
+      emergencyContact: "David Davis - +1 (555) 456-7891",
+      address: "321 Elm St, Miami, FL 33101",
+      insurance: "United Healthcare",
+      visitHistory: [
+        { date: "2024-01-22", doctor: "Dr. Maria Rodriguez", reason: "Prenatal checkup", diagnosis: "Normal pregnancy progression" },
+        { date: "2024-01-08", doctor: "Dr. Maria Rodriguez", reason: "20-week ultrasound", diagnosis: "Healthy fetal development" }
+      ]
     }
-  }, [selectedPatient]);
+  ];
 
-  const fetchPatients = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("patients")
-        .select("*")
-        .order("created_at", { ascending: false });
+  const filteredPatients = patients.filter(patient => {
+    const matchesSearch = patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         patient.phone.includes(searchTerm);
+    const matchesStatus = statusFilter === "all" || patient.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
-      if (error) throw error;
-      setPatients(data || []);
-    } catch (error) {
-      console.error("Error fetching patients:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch patients",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const fetchPatientData = async (patientId: string) => {
-    try {
-      // Fetch appointments
-      const { data: appointmentsData, error: appointmentsError } = await supabase
-        .from("appointments")
-        .select(`
-          *,
-          doctor:doctors(full_name, specialization)
-        `)
-        .eq("patient_id", patientId)
-        .order("appointment_date", { ascending: false });
-
-      if (appointmentsError) throw appointmentsError;
-      setAppointments(appointmentsData || []);
-
-      // Fetch prescriptions
-      const { data: prescriptionsData, error: prescriptionsError } = await supabase
-        .from("prescriptions")
-        .select(`
-          *,
-          doctor:doctors(full_name)
-        `)
-        .eq("patient_id", patientId)
-        .order("created_at", { ascending: false });
-
-      if (prescriptionsError) throw prescriptionsError;
-      setPrescriptions(prescriptionsData || []);
-
-      // Fetch medical records
-      const { data: recordsData, error: recordsError } = await supabase
-        .from("medical_records")
-        .select(`
-          *,
-          doctor:doctors(full_name)
-        `)
-        .eq("patient_id", patientId)
-        .order("created_at", { ascending: false });
-
-      if (recordsError) throw recordsError;
-      setMedicalRecords(recordsData || []);
-
-    } catch (error) {
-      console.error("Error fetching patient data:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch patient data",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const openPatientDetails = (patient: any) => {
-    setSelectedPatient(patient);
-    setIsDialogOpen(true);
-  };
-
-  const filteredPatients = patients.filter(patient =>
-    patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    patient.phone?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const getStatusBadge = (status: string) => {
+  const getStatusColor = (status) => {
     switch (status) {
-      case "completed":
-        return <Badge className="bg-green-100 text-green-800">Completed</Badge>;
-      case "scheduled":
-        return <Badge className="bg-blue-100 text-blue-800">Scheduled</Badge>;
-      case "cancelled":
-        return <Badge className="bg-red-100 text-red-800">Cancelled</Badge>;
-      case "active":
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
-      case "inactive":
-        return <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+      case "active": return "bg-green-100 text-green-800";
+      case "inactive": return "bg-red-100 text-red-800";
+      default: return "bg-gray-100 text-gray-800";
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <FolderOpen className="h-5 w-5" />
-                Patient Records
-              </CardTitle>
-              <CardDescription>
-                View and manage comprehensive patient information
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search patients..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-64"
-                />
+  const PatientDetailsModal = ({ patient }) => (
+    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle className="text-xl lg:text-2xl">Patient Details - {patient.name}</DialogTitle>
+        <DialogDescription>Complete patient information and medical history</DialogDescription>
+      </DialogHeader>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+        {/* Personal Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <User className="h-5 w-5" />
+              Personal Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="font-medium">Age:</span> {patient.age}
+              </div>
+              <div>
+                <span className="font-medium">Gender:</span> {patient.gender}
+              </div>
+              <div className="col-span-2">
+                <span className="font-medium">Phone:</span> {patient.phone}
+              </div>
+              <div className="col-span-2">
+                <span className="font-medium">Email:</span> {patient.email}
+              </div>
+              <div className="col-span-2">
+                <span className="font-medium">Address:</span> {patient.address}
+              </div>
+              <div className="col-span-2">
+                <span className="font-medium">Insurance:</span> {patient.insurance}
+              </div>
+              <div className="col-span-2">
+                <span className="font-medium">Emergency Contact:</span> {patient.emergencyContact}
               </div>
             </div>
-          </div>
+          </CardContent>
+        </Card>
+
+        {/* Medical Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FileText className="h-5 w-5" />
+              Medical Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <span className="font-medium text-sm">Conditions:</span>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {patient.conditions.map((condition, index) => (
+                  <Badge key={index} variant="outline" className="text-xs">
+                    {condition}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <span className="font-medium text-sm">Allergies:</span>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {patient.allergies.map((allergy, index) => (
+                  <Badge key={index} variant="destructive" className="text-xs">
+                    {allergy}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <span className="font-medium text-sm">Current Medications:</span>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {patient.medications.map((medication, index) => (
+                  <Badge key={index} className="bg-blue-100 text-blue-800 text-xs">
+                    {medication}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Visit History */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Calendar className="h-5 w-5" />
+            Visit History
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Patient Name</TableHead>
-                <TableHead>Contact Info</TableHead>
-                <TableHead>Date of Birth</TableHead>
-                <TableHead>Gender</TableHead>
-                <TableHead>Last Visit</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredPatients.map((patient) => (
-                <TableRow key={patient.id}>
-                  <TableCell className="font-medium">{patient.full_name}</TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      {patient.phone && (
-                        <div className="flex items-center gap-1 text-sm">
-                          <Phone className="h-3 w-3" />
-                          {patient.phone}
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Mail className="h-3 w-3" />
-                        Contact via system
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {patient.date_of_birth 
-                      ? new Date(patient.date_of_birth).toLocaleDateString()
-                      : "Not provided"
-                    }
-                  </TableCell>
-                  <TableCell>{patient.gender || "Not specified"}</TableCell>
-                  <TableCell>
-                    {new Date(patient.updated_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openPatientDetails(patient)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View Details
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filteredPatients.length === 0 && (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
-                    No patients found matching your search.
-                  </TableCell>
+                  <TableHead className="text-xs lg:text-sm">Date</TableHead>
+                  <TableHead className="text-xs lg:text-sm">Doctor</TableHead>
+                  <TableHead className="text-xs lg:text-sm">Reason</TableHead>
+                  <TableHead className="text-xs lg:text-sm">Diagnosis</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {patient.visitHistory.map((visit, index) => (
+                  <TableRow key={index}>
+                    <TableCell className="text-xs lg:text-sm">{visit.date}</TableCell>
+                    <TableCell className="text-xs lg:text-sm">{visit.doctor}</TableCell>
+                    <TableCell className="text-xs lg:text-sm">{visit.reason}</TableCell>
+                    <TableCell className="text-xs lg:text-sm">{visit.diagnosis}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </DialogContent>
+  );
+
+  return (
+    <div className="space-y-4 lg:space-y-6 max-w-full px-2 sm:px-0">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div>
+          <h3 className="text-lg lg:text-xl font-semibold text-gray-900">Patient Records</h3>
+          <p className="text-sm lg:text-base text-gray-600">Manage patient information and medical history</p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-4 lg:p-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search patients by name, email, or phone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Patients</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardContent>
       </Card>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FolderOpen className="h-5 w-5" />
-              Patient Details: {selectedPatient?.full_name}
-            </DialogTitle>
-            <DialogDescription>
-              Comprehensive patient information and medical history
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedPatient && (
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="appointments">Appointments</TabsTrigger>
-                <TabsTrigger value="prescriptions">Prescriptions</TabsTrigger>
-                <TabsTrigger value="records">Medical Records</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="overview" className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Personal Information</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <strong>Name:</strong> {selectedPatient.full_name}
+      {/* Patient Table */}
+      <Card>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs lg:text-sm">Patient</TableHead>
+                  <TableHead className="text-xs lg:text-sm">Contact</TableHead>
+                  <TableHead className="text-xs lg:text-sm">Last Visit</TableHead>
+                  <TableHead className="text-xs lg:text-sm">Status</TableHead>
+                  <TableHead className="text-xs lg:text-sm">Conditions</TableHead>
+                  <TableHead className="w-12"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredPatients.map((patient) => (
+                  <TableRow key={patient.id}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium text-sm lg:text-base text-gray-900">{patient.name}</div>
+                        <div className="text-xs lg:text-sm text-gray-500">{patient.age} years, {patient.gender}</div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <strong>Date of Birth:</strong> {selectedPatient.date_of_birth || "Not provided"}
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-xs lg:text-sm">
+                        <div>{patient.phone}</div>
+                        <div className="text-gray-500">{patient.email}</div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <strong>Gender:</strong> {selectedPatient.gender || "Not specified"}
+                    </TableCell>
+                    <TableCell className="text-xs lg:text-sm text-gray-600">{patient.lastVisit}</TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(patient.status)}>
+                        {patient.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {patient.conditions.slice(0, 2).map((condition, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {condition}
+                          </Badge>
+                        ))}
+                        {patient.conditions.length > 2 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{patient.conditions.length - 2}
+                          </Badge>
+                        )}
                       </div>
-                      {selectedPatient.phone && (
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4" />
-                          <strong>Phone:</strong> {selectedPatient.phone}
-                        </div>
-                      )}
-                      {selectedPatient.address && (
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4" />
-                          <strong>Address:</strong> {selectedPatient.address}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Emergency Contact</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <strong>Name:</strong> {selectedPatient.emergency_contact_name || "Not provided"}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <strong>Phone:</strong> {selectedPatient.emergency_contact_phone || "Not provided"}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-2xl font-bold">{appointments.length}</CardTitle>
-                      <CardDescription>Total Appointments</CardDescription>
-                    </CardHeader>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-2xl font-bold">{prescriptions.length}</CardTitle>
-                      <CardDescription>Active Prescriptions</CardDescription>
-                    </CardHeader>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-2xl font-bold">{medicalRecords.length}</CardTitle>
-                      <CardDescription>Medical Records</CardDescription>
-                    </CardHeader>
-                  </Card>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="appointments" className="space-y-4">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Time</TableHead>
-                      <TableHead>Doctor</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Reason</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {appointments.map((appointment) => (
-                      <TableRow key={appointment.id}>
-                        <TableCell>{new Date(appointment.appointment_date).toLocaleDateString()}</TableCell>
-                        <TableCell>{appointment.appointment_time}</TableCell>
-                        <TableCell>{appointment.doctor?.full_name}</TableCell>
-                        <TableCell>{getStatusBadge(appointment.status)}</TableCell>
-                        <TableCell>{appointment.reason || "General consultation"}</TableCell>
-                      </TableRow>
-                    ))}
-                    {appointments.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center py-4">
-                          No appointments found
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TabsContent>
-
-              <TabsContent value="prescriptions" className="space-y-4">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Medication</TableHead>
-                      <TableHead>Dosage</TableHead>
-                      <TableHead>Frequency</TableHead>
-                      <TableHead>Duration</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Prescribed By</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {prescriptions.map((prescription) => (
-                      <TableRow key={prescription.id}>
-                        <TableCell className="font-medium">{prescription.medication_name}</TableCell>
-                        <TableCell>{prescription.dosage}</TableCell>
-                        <TableCell>{prescription.frequency}</TableCell>
-                        <TableCell>{prescription.duration}</TableCell>
-                        <TableCell>{getStatusBadge(prescription.status || "active")}</TableCell>
-                        <TableCell>{prescription.doctor?.full_name}</TableCell>
-                      </TableRow>
-                    ))}
-                    {prescriptions.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-4">
-                          No prescriptions found
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TabsContent>
-
-              <TabsContent value="records" className="space-y-4">
-                {medicalRecords.map((record) => (
-                  <Card key={record.id}>
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <FileText className="h-5 w-5" />
-                          Medical Record
-                        </CardTitle>
-                        <Badge variant="outline">
-                          {new Date(record.created_at).toLocaleDateString()}
-                        </Badge>
-                      </div>
-                      <CardDescription>
-                        By Dr. {record.doctor?.full_name}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {record.symptoms && (
-                        <div>
-                          <strong>Symptoms:</strong>
-                          <p className="mt-1 text-sm">{record.symptoms}</p>
-                        </div>
-                      )}
-                      {record.diagnosis && (
-                        <div>
-                          <strong>Diagnosis:</strong>
-                          <p className="mt-1 text-sm">{record.diagnosis}</p>
-                        </div>
-                      )}
-                      {record.treatment_plan && (
-                        <div>
-                          <strong>Treatment Plan:</strong>
-                          <p className="mt-1 text-sm">{record.treatment_plan}</p>
-                        </div>
-                      )}
-                      {record.notes && (
-                        <div>
-                          <strong>Notes:</strong>
-                          <p className="mt-1 text-sm">{record.notes}</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                    </TableCell>
+                    <TableCell>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <PatientDetailsModal patient={patient} />
+                      </Dialog>
+                    </TableCell>
+                  </TableRow>
                 ))}
-                {medicalRecords.length === 0 && (
-                  <Card>
-                    <CardContent className="text-center py-8">
-                      <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground">No medical records found</p>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
-            </Tabs>
-          )}
-        </DialogContent>
-      </Dialog>
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

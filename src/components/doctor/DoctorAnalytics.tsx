@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { Calendar, Users, TrendingUp, Clock } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 
 interface AnalyticsData {
   date: string;
@@ -16,55 +15,19 @@ interface AnalyticsData {
 }
 
 export const DoctorAnalytics = () => {
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData[]>([]);
   const [timeRange, setTimeRange] = useState("7days");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, [timeRange]);
-
-  const fetchAnalytics = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: doctorData } = await supabase
-        .from('doctors')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!doctorData) return;
-
-      let dateFilter = new Date();
-      switch (timeRange) {
-        case "7days":
-          dateFilter.setDate(dateFilter.getDate() - 7);
-          break;
-        case "30days":
-          dateFilter.setDate(dateFilter.getDate() - 30);
-          break;
-        case "90days":
-          dateFilter.setDate(dateFilter.getDate() - 90);
-          break;
-      }
-
-      const { data, error } = await supabase
-        .from('doctor_analytics')
-        .select('*')
-        .eq('doctor_id', doctorData.id)
-        .gte('date', dateFilter.toISOString().split('T')[0])
-        .order('date', { ascending: true });
-
-      if (error) throw error;
-      setAnalyticsData(data || []);
-    } catch (error) {
-      console.error('Error fetching analytics:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Demo analytics data
+  const analyticsData: AnalyticsData[] = [
+    { date: "2024-01-15", patients_seen: 12, appointments_completed: 12, appointments_cancelled: 2, appointments_no_show: 1, total_revenue: 1200 },
+    { date: "2024-01-16", patients_seen: 15, appointments_completed: 14, appointments_cancelled: 1, appointments_no_show: 0, total_revenue: 1400 },
+    { date: "2024-01-17", patients_seen: 8, appointments_completed: 8, appointments_cancelled: 3, appointments_no_show: 2, total_revenue: 800 },
+    { date: "2024-01-18", patients_seen: 18, appointments_completed: 16, appointments_cancelled: 1, appointments_no_show: 1, total_revenue: 1600 },
+    { date: "2024-01-19", patients_seen: 14, appointments_completed: 13, appointments_cancelled: 2, appointments_no_show: 1, total_revenue: 1300 },
+    { date: "2024-01-20", patients_seen: 10, appointments_completed: 9, appointments_cancelled: 1, appointments_no_show: 0, total_revenue: 900 },
+    { date: "2024-01-21", patients_seen: 16, appointments_completed: 15, appointments_cancelled: 1, appointments_no_show: 1, total_revenue: 1500 }
+  ];
 
   const totalStats = analyticsData.reduce(
     (acc, curr) => ({
@@ -90,15 +53,15 @@ export const DoctorAnalytics = () => {
   ];
 
   if (isLoading) {
-    return <div>Loading analytics...</div>;
+    return <div className="flex items-center justify-center p-8">Loading analytics...</div>;
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold text-slate-800">Analytics Dashboard</h2>
+    <div className="space-y-4 lg:space-y-6 max-w-full px-2 sm:px-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h2 className="text-xl lg:text-3xl font-bold text-slate-800">Analytics Dashboard</h2>
         <Select value={timeRange} onValueChange={setTimeRange}>
-          <SelectTrigger className="w-32">
+          <SelectTrigger className="w-full sm:w-32">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -110,60 +73,60 @@ export const DoctorAnalytics = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-2xl font-bold text-blue-600 flex items-center gap-2">
-              <Users className="h-6 w-6" />
+            <CardTitle className="text-lg lg:text-2xl font-bold text-blue-600 flex items-center gap-2">
+              <Users className="h-5 w-5 lg:h-6 lg:w-6" />
               {totalStats.patients_seen}
             </CardTitle>
-            <CardDescription>Total Patients Seen</CardDescription>
+            <CardDescription className="text-sm lg:text-base">Total Patients Seen</CardDescription>
           </CardHeader>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-2xl font-bold text-green-600 flex items-center gap-2">
-              <Calendar className="h-6 w-6" />
+            <CardTitle className="text-lg lg:text-2xl font-bold text-green-600 flex items-center gap-2">
+              <Calendar className="h-5 w-5 lg:h-6 lg:w-6" />
               {totalStats.appointments_completed}
             </CardTitle>
-            <CardDescription>Completed Appointments</CardDescription>
+            <CardDescription className="text-sm lg:text-base">Completed Appointments</CardDescription>
           </CardHeader>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-2xl font-bold text-orange-600 flex items-center gap-2">
-              <Clock className="h-6 w-6" />
+            <CardTitle className="text-lg lg:text-2xl font-bold text-orange-600 flex items-center gap-2">
+              <Clock className="h-5 w-5 lg:h-6 lg:w-6" />
               {totalStats.appointments_cancelled + totalStats.appointments_no_show}
             </CardTitle>
-            <CardDescription>Missed Appointments</CardDescription>
+            <CardDescription className="text-sm lg:text-base">Missed Appointments</CardDescription>
           </CardHeader>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-2xl font-bold text-purple-600 flex items-center gap-2">
-              <TrendingUp className="h-6 w-6" />
+            <CardTitle className="text-lg lg:text-2xl font-bold text-purple-600 flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 lg:h-6 lg:w-6" />
               ${totalStats.total_revenue.toFixed(2)}
             </CardTitle>
-            <CardDescription>Total Revenue</CardDescription>
+            <CardDescription className="text-sm lg:text-base">Total Revenue</CardDescription>
           </CardHeader>
         </Card>
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Daily Patient Activity</CardTitle>
+            <CardTitle className="text-base lg:text-lg">Daily Patient Activity</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250}>
               <BarChart data={analyticsData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
+                <XAxis dataKey="date" fontSize={12} />
+                <YAxis fontSize={12} />
                 <Tooltip />
                 <Bar dataKey="patients_seen" fill="#3b82f6" />
               </BarChart>
@@ -173,10 +136,10 @@ export const DoctorAnalytics = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Appointment Status Distribution</CardTitle>
+            <CardTitle className="text-base lg:text-lg">Appointment Status Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
                   data={pieData}
@@ -202,15 +165,15 @@ export const DoctorAnalytics = () => {
       {/* Recent Activity Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Daily Summary</CardTitle>
+          <CardTitle className="text-base lg:text-lg">Recent Daily Summary</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
                   <th className="text-left p-2">Date</th>
-                  <th className="text-left p-2">Patients Seen</th>
+                  <th className="text-left p-2">Patients</th>
                   <th className="text-left p-2">Completed</th>
                   <th className="text-left p-2">Cancelled</th>
                   <th className="text-left p-2">No Show</th>
@@ -218,7 +181,7 @@ export const DoctorAnalytics = () => {
                 </tr>
               </thead>
               <tbody>
-                {analyticsData.slice(-10).reverse().map((row) => (
+                {analyticsData.slice(-7).reverse().map((row) => (
                   <tr key={row.date} className="border-b">
                     <td className="p-2">{row.date}</td>
                     <td className="p-2">{row.patients_seen}</td>

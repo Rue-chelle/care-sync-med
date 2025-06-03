@@ -23,10 +23,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { EditUserModal } from "./EditUserModal";
 
 export const UserManagement = () => {
   const { toast } = useToast();
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
+  const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRole, setSelectedRole] = useState("all");
   
@@ -39,19 +42,33 @@ export const UserManagement = () => {
     department: ""
   });
 
-  const users = [
+  const [users, setUsers] = useState([
     { id: "1", name: "Dr. John Smith", email: "john.smith@caresync.com", role: "doctor", status: "Active", department: "Cardiology", phone: "+1234567890", lastLogin: "2 hours ago" },
     { id: "2", name: "Sarah Wong", email: "sarah.wong@caresync.com", role: "patient", status: "Active", department: "-", phone: "+1234567891", lastLogin: "1 day ago" },
     { id: "3", name: "Michael Johnson", email: "michael.j@caresync.com", role: "admin", status: "Active", department: "Administration", phone: "+1234567892", lastLogin: "30 minutes ago" },
     { id: "4", name: "Dr. Jennifer Lee", email: "jennifer.lee@caresync.com", role: "doctor", status: "Inactive", department: "Pediatrics", phone: "+1234567893", lastLogin: "3 days ago" },
     { id: "5", name: "David Brown", email: "david.brown@caresync.com", role: "patient", status: "Active", department: "-", phone: "+1234567894", lastLogin: "5 hours ago" },
-  ];
+  ]);
 
   const handleAddUser = () => {
+    const newUser = {
+      id: String(users.length + 1),
+      name: newUserForm.fullName,
+      email: newUserForm.email,
+      role: newUserForm.role,
+      status: "Active",
+      department: newUserForm.department || "-",
+      phone: newUserForm.phone,
+      lastLogin: "Just created"
+    };
+
+    setUsers([...users, newUser]);
+
     toast({
       title: "User Created",
       description: `${newUserForm.fullName} has been added as a ${newUserForm.role}`,
     });
+    
     setIsAddUserDialogOpen(false);
     setNewUserForm({
       fullName: "",
@@ -63,7 +80,18 @@ export const UserManagement = () => {
     });
   };
 
+  const handleEditUser = (user: any) => {
+    setSelectedUser(user);
+    setIsEditUserModalOpen(true);
+  };
+
+  const handleSaveUser = (updatedUser: any) => {
+    setUsers(users.map(user => user.id === updatedUser.id ? updatedUser : user));
+    setSelectedUser(null);
+  };
+
   const handleDeleteUser = (userId: string, userName: string) => {
+    setUsers(users.filter(user => user.id !== userId));
     toast({
       title: "User Deleted",
       description: `${userName} has been removed from the system`,
@@ -173,7 +201,7 @@ export const UserManagement = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEditUser(user)}>
                           <Edit className="h-4 w-4 mr-2" />
                           Edit User
                         </DropdownMenuItem>
@@ -265,6 +293,13 @@ export const UserManagement = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <EditUserModal
+        isOpen={isEditUserModalOpen}
+        onClose={() => setIsEditUserModalOpen(false)}
+        onSave={handleSaveUser}
+        user={selectedUser}
+      />
     </div>
   );
 };

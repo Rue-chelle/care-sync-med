@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,14 +14,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { AddInvoiceModal } from "./AddInvoiceModal";
 
 export const Billing = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedInvoice, setSelectedInvoice] = useState(null);
-
-  // Demo billing data
-  const invoices = [
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [invoices, setInvoices] = useState([
     {
       id: "INV-001",
       patient: "John Smith",
@@ -85,7 +84,11 @@ export const Billing = () => {
       insuranceClaim: "UHC-98765",
       notes: "20-week prenatal checkup"
     }
-  ];
+  ]);
+
+  const handleAddInvoice = (newInvoice: any) => {
+    setInvoices([...invoices, newInvoice]);
+  };
 
   const filteredInvoices = invoices.filter(invoice => {
     const matchesSearch = invoice.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -116,7 +119,6 @@ export const Billing = () => {
       </DialogHeader>
       
       <div className="space-y-6 mt-4">
-        {/* Invoice Header */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
           <div>
             <h4 className="font-semibold text-sm">Patient Information</h4>
@@ -131,7 +133,6 @@ export const Billing = () => {
           </div>
         </div>
 
-        {/* Services */}
         <div>
           <h4 className="font-semibold mb-3">Services Rendered</h4>
           <Table>
@@ -142,7 +143,7 @@ export const Billing = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invoice.services.map((service, index) => (
+              {invoice.services?.map((service, index) => (
                 <TableRow key={index}>
                   <TableCell>{service.description}</TableCell>
                   <TableCell className="text-right">${service.amount.toFixed(2)}</TableCell>
@@ -156,7 +157,6 @@ export const Billing = () => {
           </Table>
         </div>
 
-        {/* Notes */}
         {invoice.notes && (
           <div>
             <h4 className="font-semibold mb-2">Notes</h4>
@@ -164,7 +164,6 @@ export const Billing = () => {
           </div>
         )}
 
-        {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
           <Button className="flex-1">
             <Download className="h-4 w-4 mr-2" />
@@ -187,7 +186,7 @@ export const Billing = () => {
           <h3 className="text-lg lg:text-xl font-semibold text-gray-900">Billing & Invoices</h3>
           <p className="text-sm lg:text-base text-gray-600">Manage patient billing and payment processing</p>
         </div>
-        <Button className="w-full sm:w-auto">
+        <Button onClick={() => setIsAddModalOpen(true)} className="w-full sm:w-auto healthcare-gradient text-white">
           <FileText className="h-4 w-4 mr-2" />
           New Invoice
         </Button>
@@ -309,6 +308,12 @@ export const Billing = () => {
           </div>
         </CardContent>
       </Card>
+
+      <AddInvoiceModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAdd={handleAddInvoice}
+      />
     </div>
   );
 };

@@ -257,7 +257,7 @@ const AdminDashboard = () => {
           {/* Sidebar Header */}
           <div className="p-4 border-b border-slate-200 flex items-center justify-between">
             <div className={`${isMobile ? 'block' : 'hidden md:block'} font-semibold text-slate-800`}>
-              Navigation
+              Menu
             </div>
             <Button 
               variant="ghost" 
@@ -270,33 +270,35 @@ const AdminDashboard = () => {
           </div>
 
           {/* Sidebar Items */}
-          <nav className="p-2 space-y-1">
-            {sidebarItems.map((item) => {
-              const isActive = currentTab === item.id;
-              const Icon = item.icon;
-              
-              return (
-                <Button
-                  key={item.id}
-                  variant="ghost"
-                  className={`w-full justify-start ${
-                    isActive 
-                      ? 'bg-blue-50 text-blue-600 border-blue-200'
-                      : 'text-slate-600 hover:bg-slate-100'
-                  } ${isMobile ? 'px-4' : 'px-2 md:px-4'}`}
-                  onClick={() => {
-                    setCurrentTab(item.id);
-                    if (isMobile) setSidebarOpen(false);
-                  }}
-                >
-                  <Icon className={`h-5 w-5 ${isMobile ? 'mr-3' : 'mr-0 md:mr-3'}`} />
-                  <span className={`${isMobile ? 'block' : 'hidden md:block'}`}>
-                    {item.label}
-                  </span>
-                </Button>
-              );
-            })}
-          </nav>
+          <div className="flex-1 overflow-y-auto">
+            <nav className="p-2 space-y-1">
+              {sidebarItems.map((item) => {
+                const isActive = currentTab === item.id;
+                const Icon = item.icon;
+                
+                return (
+                  <Button
+                    key={item.id}
+                    variant="ghost"
+                    className={`w-full justify-start ${
+                      isActive 
+                        ? 'bg-blue-50 text-blue-600 border-blue-200'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    } ${isMobile ? 'px-4' : 'px-2 md:px-4'}`}
+                    onClick={() => {
+                      setCurrentTab(item.id);
+                      if (isMobile) setSidebarOpen(false);
+                    }}
+                  >
+                    <Icon className={`h-5 w-5 ${isMobile ? 'mr-3' : 'mr-0 md:mr-3'}`} />
+                    <span className={`${isMobile ? 'block' : 'hidden md:block'}`}>
+                      {item.label}
+                    </span>
+                  </Button>
+                );
+              })}
+            </nav>
+          </div>
         </aside>
 
         {/* Main Content */}

@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { AlertTriangle, Calendar, Clock, User, Pill, FileText, Printer, Edit } from "lucide-react";
+import { AlertTriangle, Calendar, Clock, User, Pill, FileText, Printer, Edit, X } from "lucide-react";
 import { generatePrescriptionPDF } from "@/utils/pdfExport";
 
 interface PrescriptionDetailsModalProps {
@@ -44,13 +44,23 @@ export const PrescriptionDetailsModal = ({ isOpen, onClose, onEdit, prescription
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Prescription Details - {prescription.id}
-            {prescription.flagged && (
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-            )}
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Prescription Details - {prescription.id}
+              {prescription.flagged && (
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+              )}
+            </DialogTitle>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={onClose}
+              className="h-6 w-6 rounded-full"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </DialogHeader>
         
         <div className="space-y-6">

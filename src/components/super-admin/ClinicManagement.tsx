@@ -76,6 +76,14 @@ export const ClinicManagement = () => {
     });
   };
 
+  const handleEditClinic = (clinic: any) => {
+    toast({
+      title: "Edit Clinic",
+      description: `Opening edit form for ${clinic.name}`,
+    });
+    // Here you would open an edit modal or navigate to edit page
+  };
+
   const handleExportClinics = () => {
     exportDataToPDF(filteredClinics, 'clinics-report', 'Clinics Management Report');
   };
@@ -97,19 +105,26 @@ export const ClinicManagement = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white">Clinic Management</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white">Clinic Management</h2>
           <p className="text-purple-300">Manage all registered clinics and their subscriptions</p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={handleExportClinics} variant="outline" className="border-purple-500/30 text-purple-300">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Button 
+            onClick={handleExportClinics} 
+            variant="outline" 
+            className="border-purple-500/30 text-purple-300 w-full sm:w-auto"
+            size="sm"
+          >
             <Download className="h-4 w-4 mr-2" />
-            Export Report
+            <span className="hidden xs:inline">Export Report</span>
+            <span className="xs:hidden">Export</span>
           </Button>
-          <Button className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+          <Button className="bg-gradient-to-r from-purple-600 to-pink-600 text-white w-full sm:w-auto" size="sm">
             <Plus className="h-4 w-4 mr-2" />
-            Add Clinic
+            <span className="hidden xs:inline">Add Clinic</span>
+            <span className="xs:hidden">Add</span>
           </Button>
         </div>
       </div>
@@ -152,6 +167,7 @@ export const ClinicManagement = () => {
           <ClinicTable
             clinics={filteredClinics}
             onToggleStatus={handleToggleStatus}
+            onEditClinic={handleEditClinic}
           />
         </CardContent>
       </Card>

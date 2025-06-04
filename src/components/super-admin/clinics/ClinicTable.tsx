@@ -25,9 +25,10 @@ interface Clinic {
 interface ClinicTableProps {
   clinics: Clinic[];
   onToggleStatus: (clinic: Clinic) => void;
+  onEditClinic: (clinic: Clinic) => void;
 }
 
-export const ClinicTable = ({ clinics, onToggleStatus }: ClinicTableProps) => {
+export const ClinicTable = ({ clinics, onToggleStatus, onEditClinic }: ClinicTableProps) => {
   const [selectedClinic, setSelectedClinic] = useState<Clinic | null>(null);
 
   const getStatusBadge = (status: string) => {
@@ -165,7 +166,12 @@ export const ClinicTable = ({ clinics, onToggleStatus }: ClinicTableProps) => {
                       )}
                     </DialogContent>
                   </Dialog>
-                  <Button size="sm" variant="outline" className="border-purple-500/30 text-purple-300">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="border-purple-500/30 text-purple-300"
+                    onClick={() => onEditClinic(clinic)}
+                  >
                     <Edit className="h-4 w-4" />
                   </Button>
                   <Button 

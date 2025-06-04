@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Building, Users, CreditCard, AlertTriangle, TrendingUp, Calendar, Download, Eye, Settings } from "lucide-react";
@@ -24,19 +25,29 @@ export const SuperAdminOverview = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-white">Super Admin Overview</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white">Super Admin Overview</h2>
           <p className="text-purple-300 mt-2">Platform-wide metrics and system health</p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={handleExportReport} className="bg-purple-600 hover:bg-purple-700">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Button 
+            onClick={handleExportReport} 
+            className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto"
+            size="sm"
+          >
             <Download className="h-4 w-4 mr-2" />
-            Export Report
+            <span className="hidden xs:inline">Export Report</span>
+            <span className="xs:hidden">Export</span>
           </Button>
-          <Button variant="outline" className="border-purple-500/30 text-purple-300">
+          <Button 
+            variant="outline" 
+            className="border-purple-500/30 text-purple-300 w-full sm:w-auto"
+            size="sm"
+          >
             <Settings className="h-4 w-4 mr-2" />
-            Quick Settings
+            <span className="hidden xs:inline">Quick Settings</span>
+            <span className="xs:hidden">Settings</span>
           </Button>
         </div>
       </div>
@@ -125,9 +136,14 @@ export const SuperAdminOverview = () => {
               </div>
             </div>
 
-            <Button variant="outline" className="w-full border-purple-500/30 text-purple-300 mt-4">
+            <Button 
+              variant="outline" 
+              className="w-full border-purple-500/30 text-purple-300 mt-4"
+              size="sm"
+            >
               <Eye className="h-4 w-4 mr-2" />
-              View Detailed Analytics
+              <span className="hidden sm:inline">View Detailed Analytics</span>
+              <span className="sm:hidden">View Analytics</span>
             </Button>
           </CardContent>
         </Card>
@@ -156,9 +172,14 @@ export const SuperAdminOverview = () => {
               ))}
             </div>
             
-            <Button variant="outline" className="w-full border-purple-500/30 text-purple-300 mt-4">
+            <Button 
+              variant="outline" 
+              className="w-full border-purple-500/30 text-purple-300 mt-4"
+              size="sm"
+            >
               <Eye className="h-4 w-4 mr-2" />
-              View All Activity
+              <span className="hidden sm:inline">View All Activity</span>
+              <span className="sm:hidden">View All</span>
             </Button>
           </CardContent>
         </Card>

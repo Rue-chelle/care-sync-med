@@ -68,7 +68,7 @@ const SuperAdminDashboard = () => {
       case "audit":
         return <AuditLogs />;
       case "settings":
-        return <SystemSettings />;
+        return <SystemSettings onBack={() => setCurrentTab("overview")} />;
       default:
         return <SuperAdminOverview onNavigateToSettings={handleNavigateToSettings} />;
     }

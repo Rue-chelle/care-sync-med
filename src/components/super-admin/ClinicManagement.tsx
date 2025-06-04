@@ -8,14 +8,16 @@ import { exportDataToPDF } from "@/utils/pdfExport";
 import { StatsCard } from "./shared/StatsCard";
 import { FilterCard } from "./shared/FilterCard";
 import { ClinicTable } from "./clinics/ClinicTable";
+import { AddClinicModal } from "./clinics/AddClinicModal";
 
 export const ClinicManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [isAddClinicModalOpen, setIsAddClinicModalOpen] = useState(false);
   const { toast } = useToast();
 
   // Mock data
-  const clinics = [
+  const [clinics, setClinics] = useState([
     {
       id: "1",
       name: "HealthFirst Medical Center",
@@ -58,7 +60,7 @@ export const ClinicManagement = () => {
       createdAt: "2023-12-01",
       lastActive: "2024-01-18 16:45"
     }
-  ];
+  ]);
 
   const filteredClinics = clinics.filter(clinic => {
     const matchesSearch = clinic.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -70,6 +72,11 @@ export const ClinicManagement = () => {
 
   const handleToggleStatus = (clinic: any) => {
     const newStatus = clinic.status === "active" ? "suspended" : "active";
+    setClinics(prevClinics => 
+      prevClinics.map(c => 
+        c.id === clinic.id ? { ...c, status: newStatus } : c
+      )
+    );
     toast({
       title: "Status Updated",
       description: `${clinic.name} has been ${newStatus}`,
@@ -82,6 +89,10 @@ export const ClinicManagement = () => {
       description: `Opening edit form for ${clinic.name}`,
     });
     // Here you would open an edit modal or navigate to edit page
+  };
+
+  const handleAddClinic = (newClinic: any) => {
+    setClinics(prevClinics => [...prevClinics, newClinic]);
   };
 
   const handleExportClinics = () => {
@@ -121,7 +132,11 @@ export const ClinicManagement = () => {
             <span className="hidden xs:inline">Export Report</span>
             <span className="xs:hidden">Export</span>
           </Button>
-          <Button className="bg-gradient-to-r from-purple-600 to-pink-600 text-white w-full sm:w-auto" size="sm">
+          <Button 
+            onClick={() => setIsAddClinicModalOpen(true)}
+            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white w-full sm:w-auto" 
+            size="sm"
+          >
             <Plus className="h-4 w-4 mr-2" />
             <span className="hidden xs:inline">Add Clinic</span>
             <span className="xs:hidden">Add</span>
@@ -171,6 +186,12 @@ export const ClinicManagement = () => {
           />
         </CardContent>
       </Card>
+
+      <AddClinicModal
+        isOpen={isAddClinicModalOpen}
+        onClose={() => setIsAddClinicModalOpen(false)}
+        onSave={handleAddClinic}
+      />
     </div>
   );
 };

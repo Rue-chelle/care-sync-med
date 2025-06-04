@@ -24,9 +24,10 @@ interface UserTableProps {
   users: User[];
   onBanUser: (user: User) => void;
   onReactivateUser: (user: User) => void;
+  onEditUser: (user: User) => void;
 }
 
-export const UserTable = ({ users, onBanUser, onReactivateUser }: UserTableProps) => {
+export const UserTable = ({ users, onBanUser, onReactivateUser, onEditUser }: UserTableProps) => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   const getRoleBadge = (role: string) => {
@@ -141,7 +142,12 @@ export const UserTable = ({ users, onBanUser, onReactivateUser }: UserTableProps
                       )}
                     </DialogContent>
                   </Dialog>
-                  <Button size="sm" variant="outline" className="border-purple-500/30 text-purple-300">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="border-purple-500/30 text-purple-300"
+                    onClick={() => onEditUser(user)}
+                  >
                     <Edit className="h-4 w-4" />
                   </Button>
                   <Button 

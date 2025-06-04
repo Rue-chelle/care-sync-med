@@ -4,7 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Building, Users, CreditCard, AlertTriangle, TrendingUp, Calendar, Download, Eye, Settings } from "lucide-react";
 import { exportDataToPDF } from "@/utils/pdfExport";
 
-export const SuperAdminOverview = () => {
+interface SuperAdminOverviewProps {
+  onNavigateToSettings?: () => void;
+}
+
+export const SuperAdminOverview = ({ onNavigateToSettings }: SuperAdminOverviewProps) => {
   const statsData = [
     { label: "Total Clinics", value: "247", change: "+12%", period: "from last month" },
     { label: "Active Users", value: "12,847", change: "+8%", period: "from last week" },
@@ -21,6 +25,12 @@ export const SuperAdminOverview = () => {
 
   const handleExportReport = () => {
     exportDataToPDF(statsData, 'super-admin-overview', 'Super Admin Overview Report');
+  };
+
+  const handleSettingsClick = () => {
+    if (onNavigateToSettings) {
+      onNavigateToSettings();
+    }
   };
 
   return (
@@ -41,12 +51,13 @@ export const SuperAdminOverview = () => {
             <span className="xs:hidden">Export</span>
           </Button>
           <Button 
+            onClick={handleSettingsClick}
             variant="outline" 
             className="border-purple-500/30 text-purple-300 w-full sm:w-auto"
             size="sm"
           >
             <Settings className="h-4 w-4 mr-2" />
-            <span className="hidden xs:inline">Quick Settings</span>
+            <span className="hidden xs:inline">System Settings</span>
             <span className="xs:hidden">Settings</span>
           </Button>
         </div>

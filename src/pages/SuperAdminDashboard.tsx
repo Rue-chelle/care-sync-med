@@ -10,6 +10,7 @@ import { SupportTickets } from "@/components/super-admin/SupportTickets";
 import { BroadcastMessages } from "@/components/super-admin/BroadcastMessages";
 import { AuditLogs } from "@/components/super-admin/AuditLogs";
 import { SubscriptionManagement } from "@/components/super-admin/SubscriptionManagement";
+import { SystemSettings } from "@/components/super-admin/SystemSettings";
 import { GlobalNotificationsPanel } from "@/components/shared/GlobalNotificationsPanel";
 import { Button } from "@/components/ui/button";
 import { useUserStore } from "@/stores/userStore";
@@ -29,6 +30,10 @@ const SuperAdminDashboard = () => {
     navigate("/auth");
   };
 
+  const handleNavigateToSettings = () => {
+    setCurrentTab("settings");
+  };
+
   const sidebarItems = [
     { id: "overview", label: "Overview", icon: TrendingUp },
     { id: "clinics", label: "Clinics", icon: Building },
@@ -39,12 +44,13 @@ const SuperAdminDashboard = () => {
     { id: "tickets", label: "Support Tickets", icon: MessageSquare },
     { id: "broadcasts", label: "Broadcasts", icon: MessageSquare },
     { id: "audit", label: "Audit Logs", icon: FileText },
+    { id: "settings", label: "System Settings", icon: Settings },
   ];
 
   const renderContent = () => {
     switch (currentTab) {
       case "overview":
-        return <SuperAdminOverview />;
+        return <SuperAdminOverview onNavigateToSettings={handleNavigateToSettings} />;
       case "clinics":
         return <ClinicManagement />;
       case "users":
@@ -61,8 +67,10 @@ const SuperAdminDashboard = () => {
         return <BroadcastMessages />;
       case "audit":
         return <AuditLogs />;
+      case "settings":
+        return <SystemSettings />;
       default:
-        return <SuperAdminOverview />;
+        return <SuperAdminOverview onNavigateToSettings={handleNavigateToSettings} />;
     }
   };
 

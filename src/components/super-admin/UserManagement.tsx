@@ -91,6 +91,14 @@ export const UserManagement = () => {
     });
   };
 
+  const handleEditUser = (user: any) => {
+    toast({
+      title: "Edit User",
+      description: `Opening edit form for ${user.name}`,
+    });
+    // Here you would open an edit modal or navigate to edit page
+  };
+
   const handleExportUsers = () => {
     exportDataToPDF(filteredUsers, 'users-report', 'User Management Report');
   };
@@ -122,14 +130,20 @@ export const UserManagement = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white">User Management</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white">User Management</h2>
           <p className="text-purple-300">Manage all users across the platform</p>
         </div>
-        <Button onClick={handleExportUsers} variant="outline" className="border-purple-500/30 text-purple-300">
+        <Button 
+          onClick={handleExportUsers} 
+          variant="outline" 
+          className="border-purple-500/30 text-purple-300 w-full sm:w-auto"
+          size="sm"
+        >
           <Download className="h-4 w-4 mr-2" />
-          Export Report
+          <span className="hidden xs:inline">Export Report</span>
+          <span className="xs:hidden">Export</span>
         </Button>
       </div>
 
@@ -172,6 +186,7 @@ export const UserManagement = () => {
             users={filteredUsers}
             onBanUser={handleBanUser}
             onReactivateUser={handleReactivateUser}
+            onEditUser={handleEditUser}
           />
         </CardContent>
       </Card>

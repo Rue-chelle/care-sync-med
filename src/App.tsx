@@ -3,95 +3,79 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import DoctorDashboard from "./pages/DoctorDashboard";
-import NotFound from "./pages/NotFound";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import Index from "./pages/Index";
+import Auth from "./pages/Auth";
 import UnifiedAuth from "./pages/UnifiedAuth";
+import PatientAuth from "./pages/PatientAuth";
+import SuperAdminAuth from "./pages/SuperAdminAuth";
 import PatientDashboard from "./pages/PatientDashboard";
+import DoctorDashboard from "./pages/DoctorDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
-import { ProtectedRoute } from "./components/auth/ProtectedRoute";
-import { useUserStore } from "./stores/userStore";
+import SubscriptionPage from "./pages/SubscriptionPage";
+import SubscriptionSuccess from "./pages/SubscriptionSuccess";
+import SubscriptionCanceled from "./pages/SubscriptionCanceled";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => {
-  const { isAuthenticated, user } = useUserStore();
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* Unified authentication route */}
-            <Route path="/auth" element={
-              isAuthenticated ? (
-                <Navigate to={
-                  user?.role === 'admin' ? '/admin' : 
-                  user?.role === 'patient' ? '/patient' : 
-                  user?.role === 'super_admin' ? '/super-admin' :
-                  '/'
-                } />
-              ) : (
-                <UnifiedAuth />
-              )
-            } />
-            
-            {/* Legacy auth routes - redirect to unified auth */}
-            <Route path="/patient/auth" element={<Navigate to="/auth" replace />} />
-            <Route path="/super-admin/auth" element={<Navigate to="/auth" replace />} />
-            
-            {/* Doctor routes */}
-            <Route 
-              path="/" 
-              element={
-                <ProtectedRoute requiredRole="doctor">
-                  <DoctorDashboard />
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* Patient routes */}
-            <Route 
-              path="/patient" 
-              element={
-                <ProtectedRoute requiredRole="patient">
-                  <PatientDashboard />
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* Admin routes */}
-            <Route 
-              path="/admin" 
-              element={
-                <ProtectedRoute requiredRole="admin">
-                  <AdminDashboard />
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* Super Admin routes */}
-            <Route 
-              path="/super-admin" 
-              element={
-                <ProtectedRoute requiredRole="super_admin">
-                  <SuperAdminDashboard />
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* Default redirect */}
-            <Route path="*" element={
-              isAuthenticated ? <NotFound /> : <Navigate to="/auth" replace />
-            } />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  );
-};
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/auth" element={<UnifiedAuth />} />
+          <Route path="/old-auth" element={<Auth />} />
+          <Route path="/patient-auth" element={<PatientAuth />} />
+          <Route path="/super-admin-auth" element={<SuperAdminAuth />} />
+          <Route path="/subscription" element={<SubscriptionPage />} />
+          <Route path="/subscription-success" element={<SubscriptionSuccess />} />
+          <Route path="/subscription-canceled" element={<SubscriptionCanceled />} />
+          
+          {/* Protected Routes */}
+          <Route 
+            path="/patient" 
+            element={
+              <ProtectedRoute allowedRoles={['patient']}>
+                <PatientDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/doctor" 
+            element={
+              <ProtectedRoute allowedRoles={['doctor']}>
+                <DoctorDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin" 
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/super-admin" 
+            element={
+              <ProtectedRoute allowedRoles={['super_admin']}>
+                <SuperAdminDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
 
 export default App;

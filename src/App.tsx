@@ -44,7 +44,10 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
+            {/* Make UnifiedAuth the main landing page */}
+            <Route path="/" element={<UnifiedAuth />} />
+            {/* Move the old landing page to /dashboard */}
+            <Route path="/dashboard" element={<Index />} />
             <Route path="/auth" element={<UnifiedAuth />} />
             {/* Fully remove old /old-auth or /auth route using deprecated Auth component */}
             <Route path="/patient-auth" element={<PatientAuth />} />

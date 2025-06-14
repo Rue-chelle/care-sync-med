@@ -10,7 +10,7 @@ interface RetryOptions {
 export const useRetry = () => {
   const [isRetrying, setIsRetrying] = useState(false);
 
-  const executeWithRetry = useCallback(async <T>(
+  const executeWithRetry = useCallback(async <T,>(
     fn: () => Promise<T>,
     options: RetryOptions = {}
   ): Promise<T> => {

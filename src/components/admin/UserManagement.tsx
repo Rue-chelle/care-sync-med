@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Filter, Edit, Trash2, MoreHorizontal } from "lucide-react";
+import { Plus, Search, Filter, Edit, Trash2, MoreHorizontal, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Table,
@@ -25,9 +25,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { EditUserModal } from "./EditUserModal";
 
+// Simple utility to generate a random temp password (min 12 chars, not for prod use)
+function generateTempPassword() {
+  return (
+    Math.random().toString(36).slice(-8) +
+    Math.random().toString(36).slice(-4)
+  );
+}
+
 export const UserManagement = () => {
   const { toast } = useToast();
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
+  const [isTempPasswordDialogOpen, setIsTempPasswordDialogOpen] = useState(false);
+  const [tempPassUser, setTempPassUser] = useState<{email: string, password: string, name: string, role: string}|null>(null);
   const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -36,8 +46,7 @@ export const UserManagement = () => {
   const [newUserForm, setNewUserForm] = useState({
     fullName: "",
     email: "",
-    role: "patient" as "patient" | "doctor" | "admin",
-    password: "",
+    role: "doctor" as "doctor" | "admin",
     phone: "",
     department: ""
   });
@@ -51,6 +60,8 @@ export const UserManagement = () => {
   ]);
 
   const handleAddUser = () => {
+    // Only allow staff roles (doctor or admin)
+    const tempPassword = generateTempPassword();
     const newUser = {
       id: String(users.length + 1),
       name: newUserForm.fullName,
@@ -59,22 +70,21 @@ export const UserManagement = () => {
       status: "Active",
       department: newUserForm.department || "-",
       phone: newUserForm.phone,
-      lastLogin: "Just created"
+      lastLogin: "Invite sent",
+      tempPassword, // for demo
     };
 
     setUsers([...users, newUser]);
 
-    toast({
-      title: "User Created",
-      description: `${newUserForm.fullName} has been added as a ${newUserForm.role}`,
-    });
-    
+    // Show a dialog to admin with the temporary password (PROD: email/send out with secure invite)
+    setTempPassUser({email: newUserForm.email, password: tempPassword, name: newUserForm.fullName, role: newUserForm.role});
+    setIsTempPasswordDialogOpen(true);
+
     setIsAddUserDialogOpen(false);
     setNewUserForm({
       fullName: "",
       email: "",
-      role: "patient",
-      password: "",
+      role: "doctor",
       phone: "",
       department: ""
     });
@@ -121,11 +131,11 @@ export const UserManagement = () => {
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">User Management</h3>
-          <p className="text-sm text-gray-600">Manage all users in the system</p>
+          <p className="text-sm text-gray-600">Manage all users in the system. <span className="font-semibold text-[#2c6a97]">Only staff (doctor/admin) can be created here.</span></p>
         </div>
         <Button onClick={() => setIsAddUserDialogOpen(true)} className="healthcare-gradient text-white">
           <Plus className="h-4 w-4 mr-2" />
-          Add New User
+          Add Staff User
         </Button>
       </div>
 
@@ -222,13 +232,13 @@ export const UserManagement = () => {
         </CardContent>
       </Card>
 
-      {/* Add User Dialog */}
+      {/* Add Staff User Dialog */}
       <Dialog open={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add New User</DialogTitle>
+            <DialogTitle>Add Staff User</DialogTitle>
             <DialogDescription>
-              Create a new user account in the system.
+              Only Doctors and Admins can be created by Admins. Patients should use the public registration.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -264,32 +274,66 @@ export const UserManagement = () => {
               <Label htmlFor="role">Role</Label>
               <Select 
                 value={newUserForm.role} 
-                onValueChange={(value: "patient" | "doctor" | "admin") => setNewUserForm({...newUserForm, role: value})}
+                onValueChange={(value: "doctor" | "admin") => setNewUserForm({...newUserForm, role: value})}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="patient">Patient</SelectItem>
                   <SelectItem value="doctor">Doctor</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="department">Department</Label>
               <Input
-                id="password"
-                type="password"
-                value={newUserForm.password}
-                onChange={(e) => setNewUserForm({...newUserForm, password: e.target.value})}
-                placeholder="Enter password"
+                id="department"
+                value={newUserForm.department}
+                onChange={(e) => setNewUserForm({...newUserForm, department: e.target.value})}
+                placeholder="Enter department"
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddUserDialogOpen(false)}>Cancel</Button>
-            <Button className="healthcare-gradient text-white" onClick={handleAddUser}>Add User</Button>
+            <Button className="healthcare-gradient text-white" onClick={handleAddUser}>Add Staff User</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Temp Password Popup for Admin */}
+      <Dialog open={isTempPasswordDialogOpen} onOpenChange={setIsTempPasswordDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              Staff User Created
+            </DialogTitle>
+            <DialogDescription>
+              Please copy and send the credentials to the staff member securely.
+            </DialogDescription>
+          </DialogHeader>
+          {tempPassUser ? (
+            <div className="space-y-4 py-4">
+              <div className="flex items-center space-x-4">
+                <Mail className="text-blue-500" />
+                <div>
+                  <div className="font-medium text-gray-900">Email: {tempPassUser.email}</div>
+                  <div className="text-gray-600">Name: {tempPassUser.name}</div>
+                  <div className="text-gray-600">Role: {tempPassUser.role}</div>
+                </div>
+              </div>
+              <div>
+                <Label>Temporary Password</Label>
+                <div className="px-4 py-2 bg-gray-100 text-lg font-mono rounded-lg">{tempPassUser.password}</div>
+                <div className="text-xs text-gray-500 mt-2">They should log in and change their password immediately.</div>
+              </div>
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button className="healthcare-gradient" onClick={() => setIsTempPasswordDialogOpen(false)}>
+              Done
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

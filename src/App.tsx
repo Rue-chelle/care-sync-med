@@ -55,7 +55,7 @@ const App = () => (
             <Route path="/enhanced-subscription" element={<EnhancedSubscriptionPage />} />
             <Route path="/subscription-success" element={<SubscriptionSuccess />} />
             <Route path="/subscription-canceled" element={<SubscriptionCanceled />} />
-            <Route path="/testing" element={<Testing />} />
+            {/* <Route path="/testing" element={<Testing />} /> */}
             
             {/* Protected Routes */}
             <Route 
@@ -100,3 +100,4 @@ const App = () => (
 );
 
 export default App;
+

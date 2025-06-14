@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +23,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { EditUserModal } from "./EditUserModal";
+import { AddStaffUserDialog } from "./AddStaffUserDialog";
+import { sendStaffInviteEmail } from "@/utils/sendStaffInvite";
 
 // Simple utility to generate a random temp password (min 12 chars, not for prod use)
 function generateTempPassword() {
@@ -43,14 +44,6 @@ export const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRole, setSelectedRole] = useState("all");
   
-  const [newUserForm, setNewUserForm] = useState({
-    fullName: "",
-    email: "",
-    role: "doctor" as "doctor" | "admin",
-    phone: "",
-    department: ""
-  });
-
   const [users, setUsers] = useState([
     { id: "1", name: "Dr. John Smith", email: "john.smith@caresync.com", role: "doctor", status: "Active", department: "Cardiology", phone: "+1234567890", lastLogin: "2 hours ago" },
     { id: "2", name: "Sarah Wong", email: "sarah.wong@caresync.com", role: "patient", status: "Active", department: "-", phone: "+1234567891", lastLogin: "1 day ago" },
@@ -59,35 +52,50 @@ export const UserManagement = () => {
     { id: "5", name: "David Brown", email: "david.brown@caresync.com", role: "patient", status: "Active", department: "-", phone: "+1234567894", lastLogin: "5 hours ago" },
   ]);
 
-  const handleAddUser = () => {
-    // Only allow staff roles (doctor or admin)
+  // Add Staff User, send invite
+  const handleAddNewStaffUser = async (form: { fullName: string; email: string; role: "doctor" | "admin"; phone: string; department: string }) => {
     const tempPassword = generateTempPassword();
     const newUser = {
       id: String(users.length + 1),
-      name: newUserForm.fullName,
-      email: newUserForm.email,
-      role: newUserForm.role,
+      name: form.fullName,
+      email: form.email,
+      role: form.role,
       status: "Active",
-      department: newUserForm.department || "-",
-      phone: newUserForm.phone,
+      department: form.department || "-",
+      phone: form.phone,
       lastLogin: "Invite sent",
-      tempPassword, // for demo
+      tempPassword,
     };
 
     setUsers([...users, newUser]);
-
-    // Show a dialog to admin with the temporary password (PROD: email/send out with secure invite)
-    setTempPassUser({email: newUserForm.email, password: tempPassword, name: newUserForm.fullName, role: newUserForm.role});
+    setTempPassUser({
+      email: form.email,
+      password: tempPassword,
+      name: form.fullName,
+      role: form.role,
+    });
     setIsTempPasswordDialogOpen(true);
 
-    setIsAddUserDialogOpen(false);
-    setNewUserForm({
-      fullName: "",
-      email: "",
-      role: "doctor",
-      phone: "",
-      department: ""
+    // Send invitation email in the background
+    const result = await sendStaffInviteEmail({
+      email: form.email,
+      name: form.fullName,
+      role: form.role,
+      tempPassword,
     });
+
+    if (result.success) {
+      toast({
+        title: "Invitation Email Sent",
+        description: `An invitation has been sent to ${form.email}`,
+      });
+    } else {
+      toast({
+        title: "Failed to send invite",
+        description: result.error || "Unknown error",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEditUser = (user: any) => {
@@ -232,75 +240,12 @@ export const UserManagement = () => {
         </CardContent>
       </Card>
 
-      {/* Add Staff User Dialog */}
-      <Dialog open={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add Staff User</DialogTitle>
-            <DialogDescription>
-              Only Doctors and Admins can be created by Admins. Patients should use the public registration.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name</Label>
-              <Input
-                id="fullName"
-                value={newUserForm.fullName}
-                onChange={(e) => setNewUserForm({...newUserForm, fullName: e.target.value})}
-                placeholder="Enter full name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={newUserForm.email}
-                onChange={(e) => setNewUserForm({...newUserForm, email: e.target.value})}
-                placeholder="Enter email address"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                value={newUserForm.phone}
-                onChange={(e) => setNewUserForm({...newUserForm, phone: e.target.value})}
-                placeholder="Enter phone number"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <Select 
-                value={newUserForm.role} 
-                onValueChange={(value: "doctor" | "admin") => setNewUserForm({...newUserForm, role: value})}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="doctor">Doctor</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="department">Department</Label>
-              <Input
-                id="department"
-                value={newUserForm.department}
-                onChange={(e) => setNewUserForm({...newUserForm, department: e.target.value})}
-                placeholder="Enter department"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddUserDialogOpen(false)}>Cancel</Button>
-            <Button className="healthcare-gradient text-white" onClick={handleAddUser}>Add Staff User</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Refactored Add Staff User Dialog */}
+      <AddStaffUserDialog
+        open={isAddUserDialogOpen}
+        setOpen={setIsAddUserDialogOpen}
+        onAdd={handleAddNewStaffUser}
+      />
 
       {/* Temp Password Popup for Admin */}
       <Dialog open={isTempPasswordDialogOpen} onOpenChange={setIsTempPasswordDialogOpen}>
@@ -338,6 +283,7 @@ export const UserManagement = () => {
         </DialogContent>
       </Dialog>
 
+      {/* EditUserModal */}
       <EditUserModal
         isOpen={isEditUserModalOpen}
         onClose={() => setIsEditUserModalOpen(false)}

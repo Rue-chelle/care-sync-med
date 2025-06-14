@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,7 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import Index from "./pages/Index";
-import Auth from "./pages/Auth";
 import UnifiedAuth from "./pages/UnifiedAuth";
 import PatientAuth from "./pages/PatientAuth";
 import SuperAdminAuth from "./pages/SuperAdminAuth";
@@ -48,7 +46,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<UnifiedAuth />} />
-            <Route path="/old-auth" element={<Auth />} />
+            {/* Fully remove old /old-auth or /auth route using deprecated Auth component */}
             <Route path="/patient-auth" element={<PatientAuth />} />
             <Route path="/super-admin-auth" element={<SuperAdminAuth />} />
             <Route path="/subscription" element={<SubscriptionPage />} />
@@ -100,4 +98,3 @@ const App = () => (
 );
 
 export default App;
-

@@ -19,6 +19,7 @@ import SubscriptionPage from "./pages/SubscriptionPage";
 import EnhancedSubscriptionPage from "./pages/EnhancedSubscriptionPage";
 import SubscriptionSuccess from "./pages/SubscriptionSuccess";
 import SubscriptionCanceled from "./pages/SubscriptionCanceled";
+import Testing from "./pages/Testing";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/enhanced-subscription" element={<EnhancedSubscriptionPage />} />
             <Route path="/subscription-success" element={<SubscriptionSuccess />} />
             <Route path="/subscription-canceled" element={<SubscriptionCanceled />} />
+            <Route path="/testing" element={<Testing />} />
             
             {/* Protected Routes */}
             <Route 

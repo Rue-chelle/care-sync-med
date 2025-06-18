@@ -15,8 +15,8 @@
 type EnvOptions = "production" | "staging";
 
 // !!! Replace these with your actual SUPABASE staging project values !!!
-const STAGING_SUPABASE_URL = "https://YOUR-STAGING-PROJECT.supabase.co";
-const STAGING_SUPABASE_ANON_KEY = "YOUR-STAGING-ANON-KEY";
+const STAGING_SUPABASE_URL = "https://rltwyqwgbziqcjoqravq.supabase.co";
+const STAGING_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsdHd5cXdnYnppcWNqb3FyYXZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAxNjUyNTMsImV4cCI6MjA2NTc0MTI1M30.Sx6-ol7FbEi-J2zIItFnyQ14QRxRtk8xPeN6TSBvGzg";
 
 // These should match your current (prod) config:
 const PROD_SUPABASE_URL = "https://aibrsdzjvlejirlyfkzo.supabase.co";

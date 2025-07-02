@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +27,7 @@ const UnifiedAuth = () => {
       const redirectPath = user.role === 'patient' ? '/patient' :
                           user.role === 'admin' ? '/admin' :
                           user.role === 'super_admin' ? '/super-admin' :
+                          user.role === 'doctor' ? '/doctor' :
                           '/';
       navigate(redirectPath);
     }
@@ -87,7 +87,7 @@ const UnifiedAuth = () => {
         fullName: doctorData.full_name,
         role: 'doctor'
       });
-      navigate("/");
+      navigate("/doctor");
       return;
     }
 
@@ -154,11 +154,14 @@ const UnifiedAuth = () => {
             description: `Welcome back, ${mockUser.name}!`,
           });
 
-          // Redirect based on role
+          // Redirect based on role - Fixed the doctor redirect issue
           const redirectPath = mockUser.role === 'patient' ? '/patient' :
                               mockUser.role === 'admin' ? '/admin' :
                               mockUser.role === 'super_admin' ? '/super-admin' :
+                              mockUser.role === 'doctor' ? '/doctor' :
                               '/';
+          
+          console.log('Redirecting to:', redirectPath);
           navigate(redirectPath);
         } else {
           toast({

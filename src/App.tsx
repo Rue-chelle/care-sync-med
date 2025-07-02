@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -46,16 +47,13 @@ const App = () => (
           <Routes>
             {/* UnifiedAuth is the main landing page */}
             <Route path="/" element={<UnifiedAuth />} />
-            {/* Removed the old dashboard route */}
             <Route path="/auth" element={<UnifiedAuth />} />
-            {/* Fully remove old /old-auth or /auth route using deprecated Auth component */}
             <Route path="/patient-auth" element={<PatientAuth />} />
             <Route path="/super-admin-auth" element={<SuperAdminAuth />} />
             <Route path="/subscription" element={<SubscriptionPage />} />
             <Route path="/enhanced-subscription" element={<EnhancedSubscriptionPage />} />
             <Route path="/subscription-success" element={<SubscriptionSuccess />} />
             <Route path="/subscription-canceled" element={<SubscriptionCanceled />} />
-            {/* <Route path="/testing" element={<Testing />} /> */}
             
             {/* Protected Routes */}
             <Route 

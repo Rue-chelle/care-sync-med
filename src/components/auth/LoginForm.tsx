@@ -30,8 +30,10 @@ export const LoginForm = () => {
       if (error) {
         // If Supabase fails, try mock authentication for demo purposes
         const mockUsers = [
-          { email: "admin@aloramedapp.com", password: "admin123", role: "admin" as const },
-          { email: "doctor@aloramedapp.com", password: "doctor123", role: "doctor" as const }
+          { email: "patient@aloramedapp.com", password: "password123", role: "patient" as const, name: "John Patient" },
+          { email: "doctor@aloramedapp.com", password: "password123", role: "doctor" as const, name: "Dr. Sarah Wilson" },
+          { email: "admin@aloramedapp.com", password: "password123", role: "admin" as const, name: "Admin User" },
+          { email: "superadmin@aloramedapp.com", password: "password123", role: "super_admin" as const, name: "Super Administrator" }
         ];
 
         const mockUser = mockUsers.find(user => user.email === email && user.password === password);
@@ -40,24 +42,25 @@ export const LoginForm = () => {
           login({
             id: "mock-" + mockUser.role,
             email: mockUser.email,
+            fullName: mockUser.name,
             role: mockUser.role
           });
           
           toast({
             title: "Login successful",
-            description: `Welcome back, ${mockUser.role}!`,
+            description: `Welcome back, ${mockUser.name}!`,
           });
 
           // Redirect based on role
-          if (mockUser.role === "admin") {
-            navigate("/admin");
-          } else if (mockUser.role === "doctor") {
-            navigate("/");
-          }
+          const redirectPath = mockUser.role === 'patient' ? '/patient' :
+                              mockUser.role === 'admin' ? '/admin' :
+                              mockUser.role === 'super_admin' ? '/super-admin' :
+                              '/doctor';
+          navigate(redirectPath);
         } else {
           toast({
             title: "Login failed",
-            description: "Invalid email or password",
+            description: "Invalid email or password. Please use the demo credentials provided.",
             variant: "destructive",
           });
         }
@@ -85,7 +88,7 @@ export const LoginForm = () => {
             title: "Login successful",
             description: "Welcome back, Doctor!",
           });
-          navigate("/");
+          navigate("/doctor");
           return;
         }
 
@@ -158,8 +161,10 @@ export const LoginForm = () => {
       </Button>
       <div className="text-xs text-gray-500 text-center mt-4">
         <p>Demo credentials:</p>
-        <p>Admin: admin@aloramedapp.com / admin123</p>
-        <p>Doctor: doctor@aloramedapp.com / doctor123</p>
+        <p>Patient: patient@aloramedapp.com / password123</p>
+        <p>Doctor: doctor@aloramedapp.com / password123</p>
+        <p>Admin: admin@aloramedapp.com / password123</p>
+        <p>Super Admin: superadmin@aloramedapp.com / password123</p>
       </div>
     </form>
   );

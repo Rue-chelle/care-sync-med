@@ -27,7 +27,7 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
     } else if (user?.role === "patient") {
       return <Navigate to="/patient" replace />;
     } else if (user?.role === "doctor") {
-      return <Navigate to="/" replace />;
+      return <Navigate to="/doctor" replace />;
     } else {
       // If no valid role, redirect to auth
       return <Navigate to="/auth" replace />;

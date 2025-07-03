@@ -18,11 +18,12 @@ interface UserState {
   register: (user: User) => void;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
+  clearUser: () => void;
 }
 
 export const useUserStore = create<UserState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       isAuthenticated: false,
       login: (user) => {
@@ -37,12 +38,25 @@ export const useUserStore = create<UserState>()(
         console.log('User store: logging out user');
         set({ user: null, isAuthenticated: false });
       },
-      updateUser: (updates) => set((state) => ({
-        user: state.user ? { ...state.user, ...updates } : null
-      })),
+      updateUser: (updates) => {
+        const currentUser = get().user;
+        if (currentUser) {
+          const updatedUser = { ...currentUser, ...updates };
+          console.log('User store: updating user', updatedUser);
+          set({ user: updatedUser });
+        }
+      },
+      clearUser: () => {
+        console.log('User store: clearing user data');
+        set({ user: null, isAuthenticated: false });
+      },
     }),
     {
       name: "aloramedapp-user-storage",
+      // Add version to handle migration if needed
+      version: 1,
+      // Skip persisting during hydration issues
+      skipHydration: false,
     }
   )
 );

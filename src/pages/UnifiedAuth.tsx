@@ -22,138 +22,184 @@ const UnifiedAuth = () => {
   const { login, isAuthenticated, user } = useUserStore();
 
   useEffect(() => {
-    // Redirect if already authenticated
-    if (isAuthenticated && user) {
-      const redirectPath = user.role === 'patient' ? '/patient' :
-                          user.role === 'admin' ? '/admin' :
-                          user.role === 'super_admin' ? '/super-admin' :
-                          user.role === 'doctor' ? '/doctor' :
-                          '/';
-      navigate(redirectPath);
-    }
-
-    // Check for existing session
-    const checkUser = async () => {
+    // Check for existing session on mount
+    const checkSession = async () => {
       try {
+        console.log('Checking for existing session...');
         const { data: { session }, error } = await supabase.auth.getSession();
+        
         if (error) {
           console.error('Session check error:', error);
           return;
         }
         
         if (session?.user) {
-          console.log('Found existing session:', session.user.id);
-          await handleExistingSession(session);
+          console.log('Found existing session for user:', session.user.id);
+          await handleAuthenticatedUser(session.user);
         }
       } catch (error) {
         console.error('Error checking session:', error);
       }
     };
 
-    checkUser();
-
-    // Listen for auth changes
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state change:', event, session?.user?.id);
-      if (session?.user) {
-        await handleExistingSession(session);
+      
+      if (event === 'SIGNED_IN' && session?.user) {
+        await handleAuthenticatedUser(session.user);
       } else if (event === 'SIGNED_OUT') {
-        // Handle sign out
         console.log('User signed out');
       }
     });
 
+    checkSession();
+
     return () => subscription.unsubscribe();
-  }, [navigate, isAuthenticated, user]);
+  }, []);
 
-  const handleExistingSession = async (session: any) => {
-    if (!session?.user) return;
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const redirectPath = user.role === 'patient' ? '/patient' :
+                          user.role === 'admin' ? '/admin' :
+                          user.role === 'super_admin' ? '/super-admin' :
+                          user.role === 'doctor' ? '/doctor' :
+                          '/';
+      console.log('User authenticated, redirecting to:', redirectPath);
+      navigate(redirectPath);
+    }
+  }, [isAuthenticated, user, navigate]);
 
-    console.log('Handling existing session for user:', session.user.id);
+  const handleAuthenticatedUser = async (authUser: any) => {
+    console.log('Processing authenticated user:', authUser.id, authUser.email);
     
     try {
-      // Check user role from database - check patients first
+      // First check for patient profile
+      console.log('Checking for patient profile...');
       const { data: patientData, error: patientError } = await supabase
         .from('patients')
         .select('*')
-        .eq('user_id', session.user.id)
-        .single();
+        .eq('user_id', authUser.id)
+        .maybeSingle();
+
+      console.log('Patient query result:', { patientData, patientError });
 
       if (patientData && !patientError) {
-        console.log('Found patient data:', patientData);
+        console.log('Found patient profile:', patientData);
         login({
-          id: session.user.id,
-          email: session.user.email!,
+          id: authUser.id,
+          email: authUser.email,
           fullName: patientData.full_name,
           role: 'patient'
         });
-        navigate("/patient");
         return;
       }
 
-      // Check doctors
+      // Check for doctor profile
+      console.log('Checking for doctor profile...');
       const { data: doctorData, error: doctorError } = await supabase
         .from('doctors')
         .select('*')
-        .eq('user_id', session.user.id)
-        .single();
+        .eq('user_id', authUser.id)
+        .maybeSingle();
+
+      console.log('Doctor query result:', { doctorData, doctorError });
 
       if (doctorData && !doctorError) {
-        console.log('Found doctor data:', doctorData);
+        console.log('Found doctor profile:', doctorData);
         login({
-          id: session.user.id,
-          email: session.user.email!,
+          id: authUser.id,
+          email: authUser.email,
           fullName: doctorData.full_name,
           role: 'doctor'
         });
-        navigate("/doctor");
         return;
       }
 
-      // Check super admins
+      // Check for super admin profile
+      console.log('Checking for super admin profile...');
       const { data: superAdminData, error: superAdminError } = await supabase
         .from('super_admins')
         .select('*')
-        .eq('user_id', session.user.id)
-        .single();
+        .eq('user_id', authUser.id)
+        .maybeSingle();
+
+      console.log('Super admin query result:', { superAdminData, superAdminError });
 
       if (superAdminData && !superAdminError) {
-        console.log('Found super admin data:', superAdminData);
+        console.log('Found super admin profile:', superAdminData);
         login({
-          id: session.user.id,
-          email: session.user.email!,
+          id: authUser.id,
+          email: authUser.email,
           fullName: superAdminData.full_name,
           role: 'super_admin'
         });
-        navigate("/super-admin");
         return;
       }
 
-      // Default to admin if email contains admin
-      if (session.user.email?.includes('admin')) {
+      // Check if should be admin based on email
+      if (authUser.email?.includes('admin')) {
         console.log('Setting as admin based on email');
         login({
-          id: session.user.id,
-          email: session.user.email!,
+          id: authUser.id,
+          email: authUser.email,
           role: 'admin'
         });
-        navigate("/admin");
         return;
       }
 
-      console.log('No role found for user, signing out');
-      await supabase.auth.signOut();
+      // If no role found, create as patient by default
+      console.log('No profile found, creating patient profile...');
+      await createPatientProfile(authUser);
+
+    } catch (error) {
+      console.error('Error processing authenticated user:', error);
       toast({
-        title: "Account Setup Required",
-        description: "Please complete your profile setup.",
+        title: "Authentication Error",
+        description: "There was an issue setting up your account. Please try again.",
         variant: "destructive",
+      });
+    }
+  };
+
+  const createPatientProfile = async (authUser: any) => {
+    try {
+      console.log('Creating patient profile for user:', authUser.id);
+      
+      const { data, error } = await supabase
+        .from('patients')
+        .insert({
+          user_id: authUser.id,
+          full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating patient profile:', error);
+        throw error;
+      }
+
+      console.log('Patient profile created successfully:', data);
+
+      login({
+        id: authUser.id,
+        email: authUser.email,
+        fullName: data.full_name,
+        role: 'patient'
+      });
+
+      toast({
+        title: "Welcome!",
+        description: "Your account has been set up successfully.",
       });
 
     } catch (error) {
-      console.error('Error in handleExistingSession:', error);
+      console.error('Failed to create patient profile:', error);
       toast({
-        title: "Authentication Error",
-        description: "Please try logging in again.",
+        title: "Setup Error",
+        description: "Failed to complete account setup. Please contact support.",
         variant: "destructive",
       });
     }
@@ -166,16 +212,15 @@ const UnifiedAuth = () => {
     try {
       console.log('Attempting login for:', email);
       
-      // First try Supabase authentication
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        console.log('Supabase auth failed, trying mock auth:', error.message);
+        console.error('Supabase auth error:', error);
         
-        // If Supabase fails, try mock authentication for demo purposes
+        // Fallback to mock authentication for demo purposes
         const mockUsers = [
           { email: "patient@aloramedapp.com", password: "password123", role: "patient" as const, name: "John Patient" },
           { email: "doctor@aloramedapp.com", password: "password123", role: "doctor" as const, name: "Dr. Sarah Wilson" },
@@ -186,7 +231,7 @@ const UnifiedAuth = () => {
         const mockUser = mockUsers.find(user => user.email === email && user.password === password);
         
         if (mockUser) {
-          console.log('Mock user found:', mockUser.role);
+          console.log('Using mock authentication for:', mockUser.role);
           
           login({
             id: "mock-" + mockUser.role,
@@ -196,32 +241,27 @@ const UnifiedAuth = () => {
           });
           
           toast({
-            title: "Login successful",
+            title: "Login successful (Demo Mode)",
             description: `Welcome back, ${mockUser.name}!`,
           });
 
-          // Redirect based on role
-          const redirectPath = mockUser.role === 'patient' ? '/patient' :
-                              mockUser.role === 'admin' ? '/admin' :
-                              mockUser.role === 'super_admin' ? '/super-admin' :
-                              mockUser.role === 'doctor' ? '/doctor' :
-                              '/';
-          
-          console.log('Redirecting to:', redirectPath);
-          navigate(redirectPath);
-        } else {
-          toast({
-            title: "Login failed",
-            description: "Invalid email or password. Please use the demo credentials provided.",
-            variant: "destructive",
-          });
+          return;
         }
+
+        toast({
+          title: "Login failed",
+          description: error.message || "Invalid credentials. Please try again.",
+          variant: "destructive",
+        });
         return;
       }
 
       if (data.user) {
-        console.log('Supabase login successful:', data.user.id);
-        // handleExistingSession will be called by the auth state change listener
+        console.log('Login successful, user will be processed by auth state change listener');
+        toast({
+          title: "Login successful",
+          description: "Welcome back!",
+        });
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -242,14 +282,13 @@ const UnifiedAuth = () => {
     try {
       console.log('Attempting registration for:', email);
       
-      // Sign up with Supabase Auth
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: fullName,
-            role: 'patient' // Default to patient for new registrations
+            role: 'patient'
           },
           emailRedirectTo: `${window.location.origin}/`
         }
@@ -266,44 +305,17 @@ const UnifiedAuth = () => {
       }
 
       if (data.user) {
-        console.log('User created:', data.user.id);
+        console.log('User registered:', data.user.id);
         
-        // Create patient profile
-        const { error: profileError } = await supabase
-          .from('patients')
-          .insert({
-            user_id: data.user.id,
-            full_name: fullName,
-          });
-
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-          toast({
-            title: "Registration incomplete",
-            description: "Account created but profile setup failed. Please contact support.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        console.log('Patient profile created successfully');
-        
-        toast({
-          title: "Registration successful",
-          description: `Welcome to AloraMed, ${fullName}! Please check your email to verify your account.`,
-        });
-
-        // If user is automatically confirmed, redirect
         if (data.session) {
-          login({
-            id: data.user.id,
-            email: data.user.email!,
-            fullName: fullName,
-            role: 'patient'
-          });
-          navigate("/patient");
+          // User is automatically confirmed, profile will be created by auth listener
+          console.log('User auto-confirmed, waiting for profile creation...');
         } else {
-          // Switch to login tab for email verification
+          // Email confirmation required
+          toast({
+            title: "Registration successful",
+            description: "Please check your email to verify your account before signing in.",
+          });
           setActiveTab("login");
           setEmail("");
           setPassword("");
@@ -452,6 +464,7 @@ const UnifiedAuth = () => {
                           onChange={(e) => setPassword(e.target.value)} 
                           required 
                           className="h-11 pr-10"
+                          minLength={6}
                         />
                         <Button
                           type="button"
@@ -518,12 +531,12 @@ const UnifiedAuth = () => {
               })}
               
               <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <h4 className="text-sm font-medium text-blue-900 mb-2">🎯 MVP Features Available:</h4>
+                <h4 className="text-sm font-medium text-blue-900 mb-2">🎯 Testing Ready Features:</h4>
                 <ul className="text-xs text-blue-700 space-y-1">
-                  <li>• Patient: Book appointments, view prescriptions</li>
-                  <li>• Doctor: Manage patients, appointments, prescriptions</li>
-                  <li>• Admin: User management, clinic oversight</li>
-                  <li>• Super Admin: Global system management</li>
+                  <li>• Patient: Registration, profile, appointments</li>
+                  <li>• Doctor: Patient management, appointments</li>
+                  <li>• Admin: User oversight, system management</li>
+                  <li>• Super Admin: Full system control</li>
                 </ul>
               </div>
             </CardContent>

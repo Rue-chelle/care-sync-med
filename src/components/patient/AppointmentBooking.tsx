@@ -26,6 +26,7 @@ export const AppointmentBooking = () => {
   const [reason, setReason] = useState("");
   const [consultationType, setConsultationType] = useState("in-person");
   const [isLoading, setIsLoading] = useState(false);
+  const [isDoctorsLoading, setIsDoctorsLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useUserStore();
 
@@ -34,6 +35,7 @@ export const AppointmentBooking = () => {
   }, []);
 
   const fetchDoctors = async () => {
+    setIsDoctorsLoading(true);
     try {
       console.log('Fetching doctors from database...');
       const { data, error } = await supabase
@@ -45,7 +47,8 @@ export const AppointmentBooking = () => {
 
       if (error) {
         console.error('Error fetching doctors:', error);
-        // Create mock doctors if database query fails
+        
+        // Create realistic mock doctors for demo/testing
         const mockDoctors = [
           {
             id: 'mock-doctor-1',
@@ -64,15 +67,21 @@ export const AppointmentBooking = () => {
             full_name: 'Dr. Emily Rodriguez',
             specialization: 'Pediatrics',
             consultation_fee: 175
+          },
+          {
+            id: 'mock-doctor-4',
+            full_name: 'Dr. James Thompson',
+            specialization: 'Orthopedics',
+            consultation_fee: 180
           }
         ];
         
-        console.log('Using mock doctors:', mockDoctors);
+        console.log('Using mock doctors for demo:', mockDoctors);
         setDoctors(mockDoctors);
         
         toast({
-          title: "Notice",
-          description: "Using sample doctors for demo purposes.",
+          title: "Demo Mode",
+          description: "Using sample doctors for demonstration.",
         });
         return;
       }
@@ -81,23 +90,108 @@ export const AppointmentBooking = () => {
       setDoctors(data || []);
       
       if (!data || data.length === 0) {
+        // If no doctors in database, provide mock data
+        const mockDoctors = [
+          {
+            id: 'mock-doctor-1',
+            full_name: 'Dr. Sarah Wilson',
+            specialization: 'General Medicine',
+            consultation_fee: 150
+          },
+          {
+            id: 'mock-doctor-2',
+            full_name: 'Dr. Michael Chen',
+            specialization: 'Cardiology',
+            consultation_fee: 200
+          }
+        ];
+        
+        setDoctors(mockDoctors);
         toast({
-          title: "No doctors available",
-          description: "Please contact support to add doctors to the system.",
+          title: "Demo Mode",
+          description: "No doctors found in database. Using sample data.",
         });
       }
     } catch (error) {
       console.error('Unexpected error fetching doctors:', error);
       toast({
         title: "Error",
-        description: "Failed to load doctors. Please refresh the page.",
+        description: "Failed to load doctors. Using demo data.",
         variant: "destructive",
       });
+      
+      // Fallback to mock data
+      setDoctors([
+        {
+          id: 'mock-doctor-1',
+          full_name: 'Dr. Sarah Wilson',
+          specialization: 'General Medicine',
+          consultation_fee: 150
+        }
+      ]);
+    } finally {
+      setIsDoctorsLoading(false);
     }
+  };
+
+  const validateForm = () => {
+    if (!selectedDoctor) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a doctor.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!appointmentDate) {
+      toast({
+        title: "Validation Error", 
+        description: "Please select an appointment date.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!appointmentTime) {
+      toast({
+        title: "Validation Error",
+        description: "Please select an appointment time.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!reason.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please provide a reason for your visit.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    // Check if appointment is in the past
+    const appointmentDateTime = new Date(`${appointmentDate}T${appointmentTime}`);
+    if (appointmentDateTime <= new Date()) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a future date and time.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -106,52 +200,53 @@ export const AppointmentBooking = () => {
 
       if (!user) {
         toast({
-          title: "Authentication required",
+          title: "Authentication Required",
           description: "Please log in to book an appointment.",
           variant: "destructive",
         });
         return;
       }
 
-      // For mock users (demo mode), simulate successful booking
+      // Handle mock users (demo mode)
       if (user.id.startsWith('mock-')) {
         console.log('Mock user detected, simulating appointment booking...');
         
         // Simulate API delay
         await new Promise(resolve => setTimeout(resolve, 1500));
         
+        const selectedDoctorInfo = doctors.find(d => d.id === selectedDoctor);
+        
         toast({
-          title: "Appointment booked successfully (Demo Mode)",
-          description: `Your appointment with ${doctors.find(d => d.id === selectedDoctor)?.full_name || 'the doctor'} has been scheduled for ${appointmentDate} at ${appointmentTime}.`,
+          title: "Appointment Booked Successfully! (Demo Mode)",
+          description: `Your appointment with ${selectedDoctorInfo?.full_name || 'the doctor'} has been scheduled for ${appointmentDate} at ${appointmentTime}.`,
         });
 
         // Reset form
-        setSelectedDoctor("");
-        setAppointmentDate("");
-        setAppointmentTime("");
-        setReason("");
-        setConsultationType("in-person");
+        resetForm();
         return;
       }
 
       // For real users, proceed with database operations
       console.log('Real user detected, proceeding with database operations...');
 
-      // Get current user's session
+      // Get current user's session for verification
       const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
       if (userError || !authUser) {
         console.error('Auth error:', userError);
         toast({
-          title: "Authentication required",
-          description: "Please log in to book an appointment.",
+          title: "Authentication Error",
+          description: "Please log in again to book an appointment.",
           variant: "destructive",
         });
         return;
       }
 
-      console.log('Authenticated user:', authUser.id);
+      console.log('Authenticated user verified:', authUser.id);
 
-      // Get patient record
+      // Get or create patient record
+      let patientId: string;
+      
+      console.log('Looking up patient profile...');
       const { data: patientData, error: patientError } = await supabase
         .from('patients')
         .select('id')
@@ -160,11 +255,11 @@ export const AppointmentBooking = () => {
 
       console.log('Patient lookup result:', { patientData, patientError });
 
-      if (patientError) {
+      if (patientError && patientError.code !== 'PGRST116') {
         console.error('Patient lookup error:', patientError);
         toast({
           title: "Database Error",
-          description: "Failed to find your patient profile. Please contact support.",
+          description: "Failed to access your patient profile. Please try again.",
           variant: "destructive",
         });
         return;
@@ -173,12 +268,11 @@ export const AppointmentBooking = () => {
       if (!patientData) {
         console.log('No patient profile found, creating one...');
         
-        // Create patient profile if it doesn't exist
         const { data: newPatient, error: createError } = await supabase
           .from('patients')
           .insert({
             user_id: authUser.id,
-            full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Patient',
+            full_name: user.fullName || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Patient',
           })
           .select('id')
           .single();
@@ -194,28 +288,32 @@ export const AppointmentBooking = () => {
         }
 
         console.log('Created new patient profile:', newPatient);
-        patientData.id = newPatient.id;
+        patientId = newPatient.id;
+      } else {
+        patientId = patientData.id;
       }
 
-      console.log('Using patient ID:', patientData.id);
+      console.log('Using patient ID:', patientId);
 
       // Check for appointment conflicts (only for real doctors)
       if (!selectedDoctor.startsWith('mock-')) {
+        console.log('Checking for appointment conflicts...');
         const { data: existingAppointments, error: conflictError } = await supabase
           .from('appointments')
           .select('id')
           .eq('doctor_id', selectedDoctor)
           .eq('appointment_date', appointmentDate)
           .eq('appointment_time', appointmentTime)
-          .eq('status', 'scheduled');
+          .in('status', ['scheduled', 'confirmed']);
 
         if (conflictError) {
           console.error('Conflict check error:', conflictError);
+          // Continue anyway, as this is not critical
         }
 
         if (existingAppointments && existingAppointments.length > 0) {
           toast({
-            title: "Time slot unavailable",
+            title: "Time Slot Unavailable",
             description: "This time slot is already booked. Please choose another time.",
             variant: "destructive",
           });
@@ -227,17 +325,17 @@ export const AppointmentBooking = () => {
 
       // Create the appointment
       const appointmentData = {
-        patient_id: patientData.id,
+        patient_id: patientId,
         doctor_id: selectedDoctor,
         appointment_date: appointmentDate,
         appointment_time: appointmentTime,
-        reason: reason || null,
+        reason: reason.trim(),
         consultation_type: consultationType,
         status: 'scheduled',
         notes: null
       };
 
-      console.log('Appointment data:', appointmentData);
+      console.log('Inserting appointment data:', appointmentData);
 
       const { data: newAppointment, error: insertError } = await supabase
         .from('appointments')
@@ -248,7 +346,7 @@ export const AppointmentBooking = () => {
       if (insertError) {
         console.error('Appointment creation error:', insertError);
         toast({
-          title: "Booking failed",
+          title: "Booking Failed",
           description: insertError.message || "Failed to book appointment. Please try again.",
           variant: "destructive",
         });
@@ -283,22 +381,20 @@ export const AppointmentBooking = () => {
         console.log('Notification creation failed (non-critical):', notifError);
       }
 
+      const selectedDoctorInfo = doctors.find(d => d.id === selectedDoctor);
+      
       toast({
-        title: "Appointment booked successfully",
-        description: `Your appointment has been scheduled for ${appointmentDate} at ${appointmentTime}.`,
+        title: "Appointment Booked Successfully!",
+        description: `Your appointment with ${selectedDoctorInfo?.full_name || 'the doctor'} has been scheduled for ${appointmentDate} at ${appointmentTime}.`,
       });
 
       // Reset form
-      setSelectedDoctor("");
-      setAppointmentDate("");
-      setAppointmentTime("");
-      setReason("");
-      setConsultationType("in-person");
+      resetForm();
 
     } catch (error) {
       console.error('Unexpected error during booking:', error);
       toast({
-        title: "Booking failed",
+        title: "Booking Failed",
         description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
@@ -307,7 +403,16 @@ export const AppointmentBooking = () => {
     }
   };
 
+  const resetForm = () => {
+    setSelectedDoctor("");
+    setAppointmentDate("");
+    setAppointmentTime("");
+    setReason("");
+    setConsultationType("in-person");
+  };
+
   const today = new Date().toISOString().split('T')[0];
+  const currentTime = new Date().toTimeString().slice(0, 5);
 
   return (
     <Card>
@@ -321,14 +426,16 @@ export const AppointmentBooking = () => {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="doctor">Select Doctor</Label>
-            <Select value={selectedDoctor} onValueChange={setSelectedDoctor} required>
+            <Label htmlFor="doctor">Select Doctor *</Label>
+            <Select value={selectedDoctor} onValueChange={setSelectedDoctor} required disabled={isDoctorsLoading}>
               <SelectTrigger>
-                <SelectValue placeholder="Choose a doctor" />
+                <SelectValue placeholder={isDoctorsLoading ? "Loading doctors..." : "Choose a doctor"} />
               </SelectTrigger>
               <SelectContent>
-                {doctors.length === 0 ? (
-                  <SelectItem value="none" disabled>Loading doctors...</SelectItem>
+                {isDoctorsLoading ? (
+                  <SelectItem value="loading" disabled>Loading doctors...</SelectItem>
+                ) : doctors.length === 0 ? (
+                  <SelectItem value="none" disabled>No doctors available</SelectItem>
                 ) : (
                   doctors.map((doctor) => (
                     <SelectItem key={doctor.id} value={doctor.id}>
@@ -347,7 +454,7 @@ export const AppointmentBooking = () => {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="date">Appointment Date</Label>
+              <Label htmlFor="date">Appointment Date *</Label>
               <Input
                 id="date"
                 type="date"
@@ -358,12 +465,13 @@ export const AppointmentBooking = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="time">Appointment Time</Label>
+              <Label htmlFor="time">Appointment Time *</Label>
               <Input
                 id="time"
                 type="time"
                 value={appointmentTime}
                 onChange={(e) => setAppointmentTime(e.target.value)}
+                min={appointmentDate === today ? currentTime : undefined}
                 required
               />
             </div>
@@ -383,23 +491,30 @@ export const AppointmentBooking = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="reason">Reason for Visit</Label>
+            <Label htmlFor="reason">Reason for Visit *</Label>
             <Textarea
               id="reason"
-              placeholder="Briefly describe your symptoms or reason for the visit"
+              placeholder="Please describe your symptoms or reason for the visit"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={3}
+              required
             />
           </div>
 
           <Button 
             type="submit" 
             className="w-full healthcare-gradient text-white hover:opacity-90 transition-opacity"
-            disabled={isLoading || doctors.length === 0}
+            disabled={isLoading || isDoctorsLoading}
           >
-            {isLoading ? "Booking..." : "Book Appointment"}
+            {isLoading ? "Booking Appointment..." : "Book Appointment"}
           </Button>
+          
+          {!user && (
+            <p className="text-sm text-gray-600 text-center">
+              Please log in to book an appointment
+            </p>
+          )}
         </form>
       </CardContent>
     </Card>

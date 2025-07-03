@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +23,19 @@ const UnifiedAuth = () => {
   const { login, isAuthenticated, user } = useUserStore();
 
   useEffect(() => {
-    // Check for existing session on mount
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change:', event, session?.user?.id);
+      
+      if (event === 'SIGNED_IN' && session?.user) {
+        console.log('User signed in, processing...');
+        await handleAuthenticatedUser(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        console.log('User signed out');
+      }
+    });
+
+    // THEN check for existing session
     const checkSession = async () => {
       try {
         console.log('Checking for existing session...');
@@ -41,17 +54,6 @@ const UnifiedAuth = () => {
         console.error('Error checking session:', error);
       }
     };
-
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change:', event, session?.user?.id);
-      
-      if (event === 'SIGNED_IN' && session?.user) {
-        await handleAuthenticatedUser(session.user);
-      } else if (event === 'SIGNED_OUT') {
-        console.log('User signed out');
-      }
-    });
 
     checkSession();
 
@@ -75,7 +77,7 @@ const UnifiedAuth = () => {
     console.log('Processing authenticated user:', authUser.id, authUser.email);
     
     try {
-      // First check for patient profile
+      // Check for patient profile first
       console.log('Checking for patient profile...');
       const { data: patientData, error: patientError } = await supabase
         .from('patients')
@@ -144,6 +146,7 @@ const UnifiedAuth = () => {
         login({
           id: authUser.id,
           email: authUser.email,
+          fullName: authUser.user_metadata?.full_name || 'Admin User',
           role: 'admin'
         });
         return;
@@ -167,17 +170,43 @@ const UnifiedAuth = () => {
     try {
       console.log('Creating patient profile for user:', authUser.id);
       
+      const patientData = {
+        user_id: authUser.id,
+        full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
+      };
+
+      console.log('Inserting patient data:', patientData);
+
       const { data, error } = await supabase
         .from('patients')
-        .insert({
-          user_id: authUser.id,
-          full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
-        })
+        .insert(patientData)
         .select()
         .single();
 
       if (error) {
         console.error('Error creating patient profile:', error);
+        
+        // If it's a duplicate key error, try to fetch existing profile
+        if (error.code === '23505') {
+          console.log('Patient profile already exists, fetching...');
+          const { data: existingData, error: fetchError } = await supabase
+            .from('patients')
+            .select('*')
+            .eq('user_id', authUser.id)
+            .single();
+
+          if (existingData && !fetchError) {
+            console.log('Found existing patient profile:', existingData);
+            login({
+              id: authUser.id,
+              email: authUser.email,
+              fullName: existingData.full_name,
+              role: 'patient'
+            });
+            return;
+          }
+        }
+        
         throw error;
       }
 
@@ -220,32 +249,35 @@ const UnifiedAuth = () => {
       if (error) {
         console.error('Supabase auth error:', error);
         
-        // Fallback to mock authentication for demo purposes
-        const mockUsers = [
-          { email: "patient@aloramedapp.com", password: "password123", role: "patient" as const, name: "John Patient" },
-          { email: "doctor@aloramedapp.com", password: "password123", role: "doctor" as const, name: "Dr. Sarah Wilson" },
-          { email: "admin@aloramedapp.com", password: "password123", role: "admin" as const, name: "Admin User" },
-          { email: "superadmin@aloramedapp.com", password: "password123", role: "super_admin" as const, name: "Super Administrator" }
-        ];
+        // Only fall back to mock authentication for demo purposes
+        if (error.message.includes('Invalid login credentials') || error.message.includes('Email not confirmed')) {
+          console.log('Checking for demo credentials...');
+          const mockUsers = [
+            { email: "patient@aloramedapp.com", password: "password123", role: "patient" as const, name: "John Patient" },
+            { email: "doctor@aloramedapp.com", password: "password123", role: "doctor" as const, name: "Dr. Sarah Wilson" },
+            { email: "admin@aloramedapp.com", password: "password123", role: "admin" as const, name: "Admin User" },
+            { email: "superadmin@aloramedapp.com", password: "password123", role: "super_admin" as const, name: "Super Administrator" }
+          ];
 
-        const mockUser = mockUsers.find(user => user.email === email && user.password === password);
-        
-        if (mockUser) {
-          console.log('Using mock authentication for:', mockUser.role);
+          const mockUser = mockUsers.find(user => user.email === email && user.password === password);
           
-          login({
-            id: "mock-" + mockUser.role,
-            email: mockUser.email,
-            fullName: mockUser.name,
-            role: mockUser.role
-          });
-          
-          toast({
-            title: "Login successful (Demo Mode)",
-            description: `Welcome back, ${mockUser.name}!`,
-          });
+          if (mockUser) {
+            console.log('Using mock authentication for:', mockUser.role);
+            
+            login({
+              id: "mock-" + mockUser.role,
+              email: mockUser.email,
+              fullName: mockUser.name,
+              role: mockUser.role
+            });
+            
+            toast({
+              title: "Login successful (Demo Mode)",
+              description: `Welcome back, ${mockUser.name}!`,
+            });
 
-          return;
+            return;
+          }
         }
 
         toast({
@@ -282,15 +314,25 @@ const UnifiedAuth = () => {
     try {
       console.log('Attempting registration for:', email);
       
+      if (!fullName.trim()) {
+        toast({
+          title: "Registration failed",
+          description: "Please enter your full name.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            full_name: fullName,
+            full_name: fullName.trim(),
             role: 'patient'
           },
-          emailRedirectTo: `${window.location.origin}/`
+          emailRedirectTo: `${window.location.origin}/auth`
         }
       });
 
@@ -310,6 +352,10 @@ const UnifiedAuth = () => {
         if (data.session) {
           // User is automatically confirmed, profile will be created by auth listener
           console.log('User auto-confirmed, waiting for profile creation...');
+          toast({
+            title: "Registration successful",
+            description: "Welcome to AloraMed! Setting up your account...",
+          });
         } else {
           // Email confirmation required
           toast({
@@ -368,7 +414,7 @@ const UnifiedAuth = () => {
           <Card className="w-full shadow-xl border-0 bg-white/80 backdrop-blur-sm">
             <CardHeader className="text-center pb-4">
               <CardTitle className="text-2xl font-bold text-slate-800">
-                Welcome Back
+                Welcome to AloraMed
               </CardTitle>
               <CardDescription className="text-slate-600">
                 Sign in to access your healthcare dashboard
@@ -531,12 +577,12 @@ const UnifiedAuth = () => {
               })}
               
               <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <h4 className="text-sm font-medium text-blue-900 mb-2">🎯 Testing Ready Features:</h4>
+                <h4 className="text-sm font-medium text-blue-900 mb-2">🎯 Ready for Testing:</h4>
                 <ul className="text-xs text-blue-700 space-y-1">
-                  <li>• Patient: Registration, profile, appointments</li>
-                  <li>• Doctor: Patient management, appointments</li>
-                  <li>• Admin: User oversight, system management</li>
-                  <li>• Super Admin: Full system control</li>
+                  <li>• Real user registration & authentication</li>
+                  <li>• Patient profile creation & management</li>
+                  <li>• Appointment booking with data persistence</li>
+                  <li>• Role-based access control</li>
                 </ul>
               </div>
             </CardContent>

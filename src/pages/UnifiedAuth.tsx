@@ -34,19 +34,32 @@ const UnifiedAuth = () => {
 
     // Check for existing session
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        // Handle existing session based on user data
-        handleExistingSession(session);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Session check error:', error);
+          return;
+        }
+        
+        if (session?.user) {
+          console.log('Found existing session:', session.user.id);
+          await handleExistingSession(session);
+        }
+      } catch (error) {
+        console.error('Error checking session:', error);
       }
     };
 
     checkUser();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        handleExistingSession(session);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change:', event, session?.user?.id);
+      if (session?.user) {
+        await handleExistingSession(session);
+      } else if (event === 'SIGNED_OUT') {
+        // Handle sign out
+        console.log('User signed out');
       }
     });
 
@@ -54,68 +67,95 @@ const UnifiedAuth = () => {
   }, [navigate, isAuthenticated, user]);
 
   const handleExistingSession = async (session: any) => {
-    if (!session.user) return;
+    if (!session?.user) return;
 
-    // Check user role from database
-    const { data: patientData } = await supabase
-      .from('patients')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .single();
+    console.log('Handling existing session for user:', session.user.id);
+    
+    try {
+      // Check user role from database - check patients first
+      const { data: patientData, error: patientError } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .single();
 
-    if (patientData) {
-      login({
-        id: session.user.id,
-        email: session.user.email!,
-        fullName: patientData.full_name,
-        role: 'patient'
+      if (patientData && !patientError) {
+        console.log('Found patient data:', patientData);
+        login({
+          id: session.user.id,
+          email: session.user.email!,
+          fullName: patientData.full_name,
+          role: 'patient'
+        });
+        navigate("/patient");
+        return;
+      }
+
+      // Check doctors
+      const { data: doctorData, error: doctorError } = await supabase
+        .from('doctors')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (doctorData && !doctorError) {
+        console.log('Found doctor data:', doctorData);
+        login({
+          id: session.user.id,
+          email: session.user.email!,
+          fullName: doctorData.full_name,
+          role: 'doctor'
+        });
+        navigate("/doctor");
+        return;
+      }
+
+      // Check super admins
+      const { data: superAdminData, error: superAdminError } = await supabase
+        .from('super_admins')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (superAdminData && !superAdminError) {
+        console.log('Found super admin data:', superAdminData);
+        login({
+          id: session.user.id,
+          email: session.user.email!,
+          fullName: superAdminData.full_name,
+          role: 'super_admin'
+        });
+        navigate("/super-admin");
+        return;
+      }
+
+      // Default to admin if email contains admin
+      if (session.user.email?.includes('admin')) {
+        console.log('Setting as admin based on email');
+        login({
+          id: session.user.id,
+          email: session.user.email!,
+          role: 'admin'
+        });
+        navigate("/admin");
+        return;
+      }
+
+      console.log('No role found for user, signing out');
+      await supabase.auth.signOut();
+      toast({
+        title: "Account Setup Required",
+        description: "Please complete your profile setup.",
+        variant: "destructive",
       });
-      navigate("/patient");
-      return;
-    }
 
-    const { data: doctorData } = await supabase
-      .from('doctors')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .single();
-
-    if (doctorData) {
-      login({
-        id: session.user.id,
-        email: session.user.email!,
-        fullName: doctorData.full_name,
-        role: 'doctor'
+    } catch (error) {
+      console.error('Error in handleExistingSession:', error);
+      toast({
+        title: "Authentication Error",
+        description: "Please try logging in again.",
+        variant: "destructive",
       });
-      navigate("/doctor");
-      return;
-    }
-
-    const { data: superAdminData } = await supabase
-      .from('super_admins')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .single();
-
-    if (superAdminData) {
-      login({
-        id: session.user.id,
-        email: session.user.email!,
-        fullName: superAdminData.full_name,
-        role: 'super_admin'
-      });
-      navigate("/super-admin");
-      return;
-    }
-
-    // Default to admin if no specific role found
-    if (session.user.email?.includes('admin')) {
-      login({
-        id: session.user.id,
-        email: session.user.email!,
-        role: 'admin'
-      });
-      navigate("/admin");
     }
   };
 
@@ -124,6 +164,8 @@ const UnifiedAuth = () => {
     setIsLoading(true);
 
     try {
+      console.log('Attempting login for:', email);
+      
       // First try Supabase authentication
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -131,6 +173,8 @@ const UnifiedAuth = () => {
       });
 
       if (error) {
+        console.log('Supabase auth failed, trying mock auth:', error.message);
+        
         // If Supabase fails, try mock authentication for demo purposes
         const mockUsers = [
           { email: "patient@aloramedapp.com", password: "password123", role: "patient" as const, name: "John Patient" },
@@ -142,6 +186,8 @@ const UnifiedAuth = () => {
         const mockUser = mockUsers.find(user => user.email === email && user.password === password);
         
         if (mockUser) {
+          console.log('Mock user found:', mockUser.role);
+          
           login({
             id: "mock-" + mockUser.role,
             email: mockUser.email,
@@ -154,7 +200,7 @@ const UnifiedAuth = () => {
             description: `Welcome back, ${mockUser.name}!`,
           });
 
-          // Redirect based on role - Fixed the doctor redirect issue
+          // Redirect based on role
           const redirectPath = mockUser.role === 'patient' ? '/patient' :
                               mockUser.role === 'admin' ? '/admin' :
                               mockUser.role === 'super_admin' ? '/super-admin' :
@@ -174,9 +220,11 @@ const UnifiedAuth = () => {
       }
 
       if (data.user) {
-        await handleExistingSession(data);
+        console.log('Supabase login successful:', data.user.id);
+        // handleExistingSession will be called by the auth state change listener
       }
     } catch (error) {
+      console.error('Login error:', error);
       toast({
         title: "Login failed",
         description: "Something went wrong. Please try again.",
@@ -192,6 +240,9 @@ const UnifiedAuth = () => {
     setIsLoading(true);
 
     try {
+      console.log('Attempting registration for:', email);
+      
+      // Sign up with Supabase Auth
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -199,11 +250,13 @@ const UnifiedAuth = () => {
           data: {
             full_name: fullName,
             role: 'patient' // Default to patient for new registrations
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/`
         }
       });
 
       if (error) {
+        console.error('Registration error:', error);
         toast({
           title: "Registration failed",
           description: error.message,
@@ -213,6 +266,8 @@ const UnifiedAuth = () => {
       }
 
       if (data.user) {
+        console.log('User created:', data.user.id);
+        
         // Create patient profile
         const { error: profileError } = await supabase
           .from('patients')
@@ -223,16 +278,40 @@ const UnifiedAuth = () => {
 
         if (profileError) {
           console.error('Profile creation error:', profileError);
+          toast({
+            title: "Registration incomplete",
+            description: "Account created but profile setup failed. Please contact support.",
+            variant: "destructive",
+          });
+          return;
         }
 
+        console.log('Patient profile created successfully');
+        
         toast({
           title: "Registration successful",
-          description: `Welcome to AloraMed, ${fullName}!`,
+          description: `Welcome to AloraMed, ${fullName}! Please check your email to verify your account.`,
         });
 
-        navigate("/patient");
+        // If user is automatically confirmed, redirect
+        if (data.session) {
+          login({
+            id: data.user.id,
+            email: data.user.email!,
+            fullName: fullName,
+            role: 'patient'
+          });
+          navigate("/patient");
+        } else {
+          // Switch to login tab for email verification
+          setActiveTab("login");
+          setEmail("");
+          setPassword("");
+          setFullName("");
+        }
       }
     } catch (error) {
+      console.error('Registration error:', error);
       toast({
         title: "Registration failed",
         description: "Something went wrong. Please try again.",

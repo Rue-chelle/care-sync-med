@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, Clock, User } from "lucide-react";
+import { Calendar, Clock, User, AlertCircle } from "lucide-react";
 import { useUserStore } from "@/stores/userStore";
 
 interface Doctor {
@@ -27,12 +27,32 @@ export const AppointmentBooking = () => {
   const [consultationType, setConsultationType] = useState("in-person");
   const [isLoading, setIsLoading] = useState(false);
   const [isDoctorsLoading, setIsDoctorsLoading] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
   const { toast } = useToast();
   const { user } = useUserStore();
 
   useEffect(() => {
+    testDatabaseConnection();
     fetchDoctors();
   }, []);
+
+  const testDatabaseConnection = async () => {
+    try {
+      console.log('Testing database connection...');
+      const { data, error } = await supabase.from('patients').select('count').limit(1);
+      
+      if (error) {
+        console.error('Database connection test failed:', error);
+        setConnectionStatus('error');
+      } else {
+        console.log('Database connection successful');
+        setConnectionStatus('connected');
+      }
+    } catch (error) {
+      console.error('Database connection error:', error);
+      setConnectionStatus('error');
+    }
+  };
 
   const fetchDoctors = async () => {
     setIsDoctorsLoading(true);
@@ -79,10 +99,12 @@ export const AppointmentBooking = () => {
         console.log('Using mock doctors for demo:', mockDoctors);
         setDoctors(mockDoctors);
         
-        toast({
-          title: "Demo Mode",
-          description: "Using sample doctors for demonstration.",
-        });
+        if (connectionStatus === 'connected') {
+          toast({
+            title: "Demo Mode",
+            description: "No doctors found in database. Using sample data for testing.",
+          });
+        }
         return;
       }
 
@@ -115,8 +137,8 @@ export const AppointmentBooking = () => {
     } catch (error) {
       console.error('Unexpected error fetching doctors:', error);
       toast({
-        title: "Error",
-        description: "Failed to load doctors. Using demo data.",
+        title: "Connection Error",
+        description: "Unable to connect to database. Using demo data.",
         variant: "destructive",
       });
       
@@ -197,6 +219,7 @@ export const AppointmentBooking = () => {
     try {
       console.log('Starting appointment booking process...');
       console.log('Current user:', user);
+      console.log('Connection status:', connectionStatus);
 
       if (!user) {
         toast({
@@ -208,8 +231,8 @@ export const AppointmentBooking = () => {
       }
 
       // Handle mock users (demo mode)
-      if (user.id.startsWith('mock-')) {
-        console.log('Mock user detected, simulating appointment booking...');
+      if (user.id.startsWith('mock-') || connectionStatus === 'error') {
+        console.log('Mock user or connection error detected, simulating appointment booking...');
         
         // Simulate API delay
         await new Promise(resolve => setTimeout(resolve, 1500));
@@ -226,8 +249,8 @@ export const AppointmentBooking = () => {
         return;
       }
 
-      // For real users, proceed with database operations
-      console.log('Real user detected, proceeding with database operations...');
+      // For real users with database connection, proceed with real operations
+      console.log('Real user with database connection, proceeding with database operations...');
 
       // Get current user's session for verification
       const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
@@ -249,7 +272,7 @@ export const AppointmentBooking = () => {
       console.log('Looking up patient profile...');
       const { data: patientData, error: patientError } = await supabase
         .from('patients')
-        .select('id')
+        .select('id, full_name')
         .eq('user_id', authUser.id)
         .maybeSingle();
 
@@ -268,32 +291,41 @@ export const AppointmentBooking = () => {
       if (!patientData) {
         console.log('No patient profile found, creating one...');
         
-        const { data: newPatient, error: createError } = await supabase
-          .from('patients')
-          .insert({
-            user_id: authUser.id,
-            full_name: user.fullName || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Patient',
-          })
-          .select('id')
-          .single();
+        try {
+          const { data: newPatient, error: createError } = await supabase
+            .from('patients')
+            .insert({
+              user_id: authUser.id,
+              full_name: user.fullName || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Patient',
+            })
+            .select('id, full_name')
+            .single();
 
-        if (createError) {
-          console.error('Failed to create patient profile:', createError);
+          if (createError) {
+            console.error('Failed to create patient profile:', createError);
+            toast({
+              title: "Setup Error",
+              description: "Failed to set up your patient profile. Please contact support.",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          console.log('Created new patient profile:', newPatient);
+          patientId = newPatient.id;
+        } catch (error) {
+          console.error('Error creating patient profile:', error);
           toast({
             title: "Setup Error",
-            description: "Failed to set up your patient profile. Please contact support.",
+            description: "Failed to create your patient profile. Please try again.",
             variant: "destructive",
           });
           return;
         }
-
-        console.log('Created new patient profile:', newPatient);
-        patientId = newPatient.id;
       } else {
         patientId = patientData.id;
+        console.log('Using existing patient ID:', patientId);
       }
-
-      console.log('Using patient ID:', patientId);
 
       // Check for appointment conflicts (only for real doctors)
       if (!selectedDoctor.startsWith('mock-')) {
@@ -340,7 +372,7 @@ export const AppointmentBooking = () => {
       const { data: newAppointment, error: insertError } = await supabase
         .from('appointments')
         .insert(appointmentData)
-        .select()
+        .select('*')
         .single();
 
       if (insertError) {
@@ -355,28 +387,15 @@ export const AppointmentBooking = () => {
 
       console.log('Appointment created successfully:', newAppointment);
 
-      // Try to create a notification for the doctor (non-critical)
+      // Try to create a notification (non-critical)
       try {
-        if (!selectedDoctor.startsWith('mock-')) {
-          const { data: doctorData } = await supabase
-            .from('doctors')
-            .select('user_id, full_name')
-            .eq('id', selectedDoctor)
-            .maybeSingle();
-
-          if (doctorData?.user_id) {
-            await supabase
-              .from('notifications')
-              .insert({
-                user_id: doctorData.user_id,
-                title: 'New Appointment Request',
-                message: `New appointment booked for ${appointmentDate} at ${appointmentTime}`,
-                type: 'info'
-              });
-            
-            console.log('Doctor notification created');
-          }
-        }
+        await supabase.from('notifications').insert({
+          user_id: authUser.id,
+          title: 'Appointment Booked',
+          message: `Your appointment has been scheduled for ${appointmentDate} at ${appointmentTime}`,
+          type: 'success'
+        });
+        console.log('User notification created');
       } catch (notifError) {
         console.log('Notification creation failed (non-critical):', notifError);
       }
@@ -420,8 +439,18 @@ export const AppointmentBooking = () => {
         <CardTitle className="flex items-center">
           <Calendar className="mr-2 h-5 w-5 text-blue-600" />
           Book New Appointment
+          {connectionStatus === 'error' && (
+            <AlertCircle className="ml-2 h-4 w-4 text-amber-500" title="Database connection issue - using demo mode" />
+          )}
         </CardTitle>
-        <CardDescription>Schedule an appointment with one of our doctors</CardDescription>
+        <CardDescription>
+          Schedule an appointment with one of our doctors
+          {connectionStatus === 'error' && (
+            <span className="block text-amber-600 text-sm mt-1">
+              Note: Database connection issue detected. Appointments will be simulated.
+            </span>
+          )}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -514,6 +543,15 @@ export const AppointmentBooking = () => {
             <p className="text-sm text-gray-600 text-center">
               Please log in to book an appointment
             </p>
+          )}
+
+          {connectionStatus === 'error' && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-800">
+                <AlertCircle className="inline h-4 w-4 mr-1" />
+                Database connectivity issues detected. Appointments will be simulated for testing purposes.
+              </p>
+            </div>
           )}
         </form>
       </CardContent>

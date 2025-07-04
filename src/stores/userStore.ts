@@ -14,11 +14,13 @@ interface User {
 interface UserState {
   user: User | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (user: User) => void;
   register: (user: User) => void;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
   clearUser: () => void;
+  setLoading: (loading: boolean) => void;
 }
 
 export const useUserStore = create<UserState>()(
@@ -26,19 +28,24 @@ export const useUserStore = create<UserState>()(
     (set, get) => ({
       user: null,
       isAuthenticated: false,
+      isLoading: false,
       login: (user) => {
         console.log('User store: logging in user', user);
-        set({ user, isAuthenticated: true });
+        set({ user, isAuthenticated: true, isLoading: false });
       },
       register: (user) => {
         console.log('User store: registering user', user);
-        set({ user, isAuthenticated: true });
+        set({ user, isAuthenticated: true, isLoading: false });
       },
       logout: () => {
         console.log('User store: logging out user');
-        set({ user: null, isAuthenticated: false });
+        set({ user: null, isAuthenticated: false, isLoading: false });
         // Clear the stored data immediately
-        localStorage.removeItem('aloramedapp-user-storage');
+        try {
+          localStorage.removeItem('aloramedapp-user-storage');
+        } catch (error) {
+          console.error('Error clearing localStorage:', error);
+        }
       },
       updateUser: (updates) => {
         const currentUser = get().user;
@@ -50,8 +57,15 @@ export const useUserStore = create<UserState>()(
       },
       clearUser: () => {
         console.log('User store: clearing user data');
-        set({ user: null, isAuthenticated: false });
-        localStorage.removeItem('aloramedapp-user-storage');
+        set({ user: null, isAuthenticated: false, isLoading: false });
+        try {
+          localStorage.removeItem('aloramedapp-user-storage');
+        } catch (error) {
+          console.error('Error clearing localStorage:', error);
+        }
+      },
+      setLoading: (loading) => {
+        set({ isLoading: loading });
       },
     }),
     {

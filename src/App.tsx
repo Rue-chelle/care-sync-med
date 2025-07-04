@@ -1,100 +1,104 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { ConnectionStatus } from "@/components/shared/ConnectionStatus";
+import { DeveloperTools } from "@/components/shared/DeveloperTools";
 import Index from "./pages/Index";
-import UnifiedAuth from "./pages/UnifiedAuth";
-import PatientAuth from "./pages/PatientAuth";
-import SuperAdminAuth from "./pages/SuperAdminAuth";
+import Testing from "./pages/Testing";
+import ProductionStatus from "./pages/ProductionStatus";
 import PatientDashboard from "./pages/PatientDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
-import SuperAdminDashboard from "./pages/SuperAdminDashboard";
-import SubscriptionPage from "./pages/SubscriptionPage";
-import EnhancedSubscriptionPage from "./pages/EnhancedSubscriptionPage";
-import SubscriptionSuccess from "./pages/SubscriptionSuccess";
-import SubscriptionCanceled from "./pages/SubscriptionCanceled";
-import Testing from "./pages/Testing";
-import NotFound from "./pages/NotFound";
+import { AppointmentBooking } from "@/components/patient/AppointmentBooking";
+import { EnhancedAppointmentBooking } from "@/components/patient/EnhancedAppointmentBooking";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import { useUserStore } from "@/stores/userStore";
+import { useEffect } from "react";
+import { supabase } from "./integrations/supabase/client";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes
-      retry: (failureCount, error) => {
-        // Don't retry on 4xx errors
-        if (error instanceof Error && error.message.includes('4')) {
-          return false;
-        }
-        return failureCount < 3;
-      },
-    },
-  },
-});
+const queryClient = new QueryClient();
 
-const App = () => (
-  <ErrorBoundary>
+const App = () => {
+  const { clearUser, user, isAuthenticated, login, setLoading } = useUserStore();
+
+  useEffect(() => {
+    const fetchSession = async () => {
+      setLoading(true);
+      const { data: { session }, error } = await supabase.auth.getSession();
+
+      if (error) {
+        console.error("Error fetching session:", error);
+        clearUser();
+      }
+
+      if (session) {
+        const { user } = session;
+        console.log('App.tsx: session found, user:', user);
+        login({
+          id: user.id,
+          email: user.email ?? 'example@email.com',
+          fullName: user?.user_metadata?.full_name as string,
+          role: user?.user_metadata?.role as "patient" | "doctor" | "admin" | "super_admin" ?? 'patient',
+        });
+      } else {
+        console.log('App.tsx: no session found');
+        clearUser();
+      }
+      setLoading(false);
+    };
+
+    fetchSession();
+
+    // Subscribe to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth event:', event);
+      if (event === 'SIGNED_IN' && session) {
+        login({
+          id: session.user.id,
+          email: session.user.email ?? 'example@email.com',
+          fullName: session.user?.user_metadata?.full_name as string,
+          role: session.user?.user_metadata?.role as "patient" | "doctor" | "admin" | "super_admin" ?? 'patient',
+        });
+      } else if (event === 'SIGNED_OUT') {
+        clearUser();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [clearUser, login, setLoading]);
+
+  return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* UnifiedAuth is the main landing page */}
-            <Route path="/" element={<UnifiedAuth />} />
-            <Route path="/auth" element={<UnifiedAuth />} />
-            <Route path="/patient-auth" element={<PatientAuth />} />
-            <Route path="/super-admin-auth" element={<SuperAdminAuth />} />
-            <Route path="/subscription" element={<SubscriptionPage />} />
-            <Route path="/enhanced-subscription" element={<EnhancedSubscriptionPage />} />
-            <Route path="/subscription-success" element={<SubscriptionSuccess />} />
-            <Route path="/subscription-canceled" element={<SubscriptionCanceled />} />
-            
-            {/* Protected Routes */}
-            <Route 
-              path="/patient" 
-              element={
-                <ProtectedRoute requiredRole="patient">
-                  <PatientDashboard />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/doctor" 
-              element={
-                <ProtectedRoute requiredRole="doctor">
-                  <DoctorDashboard />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin" 
-              element={
-                <ProtectedRoute requiredRole="admin">
-                  <AdminDashboard />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/super-admin" 
-              element={
-                <ProtectedRoute requiredRole="super_admin">
-                  <SuperAdminDashboard />
-                </ProtectedRoute>
-              } 
-            />
-            
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <ErrorBoundary>
+          <Toaster />
+          <Sonner />
+          <ConnectionStatus />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/patient-dashboard" element={<PatientDashboard />} />
+              <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
+              <Route path="/admin-dashboard" element={<AdminDashboard />} />
+              <Route path="/book-appointment" element={<AppointmentBooking />} />
+              <Route path="/enhanced-booking" element={<EnhancedAppointmentBooking />} />
+              <Route path="/testing" element={<Testing />} />
+              <Route path="/production-status" element={<ProductionStatus />} />
+            </Routes>
+            <DeveloperTools />
+          </BrowserRouter>
+        </ErrorBoundary>
       </TooltipProvider>
     </QueryClientProvider>
-  </ErrorBoundary>
-);
+  );
+};
 
 export default App;

@@ -440,7 +440,9 @@ export const AppointmentBooking = () => {
           <Calendar className="mr-2 h-5 w-5 text-blue-600" />
           Book New Appointment
           {connectionStatus === 'error' && (
-            <AlertCircle className="ml-2 h-4 w-4 text-amber-500" title="Database connection issue - using demo mode" />
+            <div className="ml-2 flex items-center text-amber-500" role="img" aria-label="Database connection issue - using demo mode">
+              <AlertCircle className="h-4 w-4" />
+            </div>
           )}
         </CardTitle>
         <CardDescription>

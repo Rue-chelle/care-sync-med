@@ -1,15 +1,20 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon, Clock, User, Stethoscope } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, Clock, User, AlertCircle } from "lucide-react";
-import { useUserStore } from "@/stores/userStore";
+import { useToast } from "@/hooks/use-toast";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { SuccessNotification } from "@/components/shared/SuccessNotification";
 
 interface Doctor {
   id: string;
@@ -18,545 +23,298 @@ interface Doctor {
   consultation_fee: number;
 }
 
+const timeSlots = [
+  "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+  "14:00", "14:30", "15:00", "15:30", "16:00", "16:30"
+];
+
 export const AppointmentBooking = () => {
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [selectedDoctor, setSelectedDoctor] = useState("");
-  const [appointmentDate, setAppointmentDate] = useState("");
-  const [appointmentTime, setAppointmentTime] = useState("");
+  const [selectedDate, setSelectedDate] = useState<Date>();
+  const [selectedTime, setSelectedTime] = useState<string>("");
+  const [selectedDoctor, setSelectedDoctor] = useState<string>("");
   const [reason, setReason] = useState("");
-  const [consultationType, setConsultationType] = useState("in-person");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isDoctorsLoading, setIsDoctorsLoading] = useState(true);
-  const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
+  const [patientName, setPatientName] = useState("");
+  const [patientEmail, setPatientEmail] = useState("");
+  const [patientPhone, setPatientPhone] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [doctors] = useState<Doctor[]>([
+    {
+      id: "1",
+      full_name: "Dr. Sarah Wilson",
+      specialization: "Cardiologist",
+      consultation_fee: 150
+    },
+    {
+      id: "2", 
+      full_name: "Dr. Michael Chen",
+      specialization: "Dermatologist",
+      consultation_fee: 120
+    },
+    {
+      id: "3",
+      full_name: "Dr. Emily Rodriguez",
+      specialization: "Pediatrician", 
+      consultation_fee: 100
+    }
+  ]);
+
   const { toast } = useToast();
-  const { user } = useUserStore();
-
-  useEffect(() => {
-    testDatabaseConnection();
-    fetchDoctors();
-  }, []);
-
-  const testDatabaseConnection = async () => {
-    try {
-      console.log('Testing database connection...');
-      const { data, error } = await supabase.from('patients').select('count').limit(1);
-      
-      if (error) {
-        console.error('Database connection test failed:', error);
-        setConnectionStatus('error');
-      } else {
-        console.log('Database connection successful');
-        setConnectionStatus('connected');
-      }
-    } catch (error) {
-      console.error('Database connection error:', error);
-      setConnectionStatus('error');
-    }
-  };
-
-  const fetchDoctors = async () => {
-    setIsDoctorsLoading(true);
-    try {
-      console.log('Fetching doctors from database...');
-      const { data, error } = await supabase
-        .from('doctors')
-        .select('id, full_name, specialization, consultation_fee')
-        .order('full_name');
-
-      console.log('Doctors query result:', { data, error });
-
-      if (error) {
-        console.error('Error fetching doctors:', error);
-        
-        // Create realistic mock doctors for demo/testing
-        const mockDoctors = [
-          {
-            id: 'mock-doctor-1',
-            full_name: 'Dr. Sarah Wilson',
-            specialization: 'General Medicine',
-            consultation_fee: 150
-          },
-          {
-            id: 'mock-doctor-2',
-            full_name: 'Dr. Michael Chen',
-            specialization: 'Cardiology',
-            consultation_fee: 200
-          },
-          {
-            id: 'mock-doctor-3',
-            full_name: 'Dr. Emily Rodriguez',
-            specialization: 'Pediatrics',
-            consultation_fee: 175
-          },
-          {
-            id: 'mock-doctor-4',
-            full_name: 'Dr. James Thompson',
-            specialization: 'Orthopedics',
-            consultation_fee: 180
-          }
-        ];
-        
-        console.log('Using mock doctors for demo:', mockDoctors);
-        setDoctors(mockDoctors);
-        
-        if (connectionStatus === 'connected') {
-          toast({
-            title: "Demo Mode",
-            description: "No doctors found in database. Using sample data for testing.",
-          });
-        }
-        return;
-      }
-
-      console.log('Successfully fetched doctors:', data?.length || 0);
-      setDoctors(data || []);
-      
-      if (!data || data.length === 0) {
-        // If no doctors in database, provide mock data
-        const mockDoctors = [
-          {
-            id: 'mock-doctor-1',
-            full_name: 'Dr. Sarah Wilson',
-            specialization: 'General Medicine',
-            consultation_fee: 150
-          },
-          {
-            id: 'mock-doctor-2',
-            full_name: 'Dr. Michael Chen',
-            specialization: 'Cardiology',
-            consultation_fee: 200
-          }
-        ];
-        
-        setDoctors(mockDoctors);
-        toast({
-          title: "Demo Mode",
-          description: "No doctors found in database. Using sample data.",
-        });
-      }
-    } catch (error) {
-      console.error('Unexpected error fetching doctors:', error);
-      toast({
-        title: "Connection Error",
-        description: "Unable to connect to database. Using demo data.",
-        variant: "destructive",
-      });
-      
-      // Fallback to mock data
-      setDoctors([
-        {
-          id: 'mock-doctor-1',
-          full_name: 'Dr. Sarah Wilson',
-          specialization: 'General Medicine',
-          consultation_fee: 150
-        }
-      ]);
-    } finally {
-      setIsDoctorsLoading(false);
-    }
-  };
-
-  const validateForm = () => {
-    if (!selectedDoctor) {
-      toast({
-        title: "Validation Error",
-        description: "Please select a doctor.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    if (!appointmentDate) {
-      toast({
-        title: "Validation Error", 
-        description: "Please select an appointment date.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    if (!appointmentTime) {
-      toast({
-        title: "Validation Error",
-        description: "Please select an appointment time.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    if (!reason.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Please provide a reason for your visit.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    // Check if appointment is in the past
-    const appointmentDateTime = new Date(`${appointmentDate}T${appointmentTime}`);
-    if (appointmentDateTime <= new Date()) {
-      toast({
-        title: "Validation Error",
-        description: "Please select a future date and time.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    return true;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    if (!selectedDate || !selectedTime || !selectedDoctor || !patientName || !patientEmail) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
       return;
     }
 
-    setIsLoading(true);
+    setIsSubmitting(true);
 
     try {
-      console.log('Starting appointment booking process...');
-      console.log('Current user:', user);
-      console.log('Connection status:', connectionStatus);
-
-      if (!user) {
-        toast({
-          title: "Authentication Required",
-          description: "Please log in to book an appointment.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Handle mock users (demo mode)
-      if (user.id.startsWith('mock-') || connectionStatus === 'error') {
-        console.log('Mock user or connection error detected, simulating appointment booking...');
-        
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        const selectedDoctorInfo = doctors.find(d => d.id === selectedDoctor);
-        
-        toast({
-          title: "Appointment Booked Successfully! (Demo Mode)",
-          description: `Your appointment with ${selectedDoctorInfo?.full_name || 'the doctor'} has been scheduled for ${appointmentDate} at ${appointmentTime}.`,
-        });
-
-        // Reset form
-        resetForm();
-        return;
-      }
-
-      // For real users with database connection, proceed with real operations
-      console.log('Real user with database connection, proceeding with database operations...');
-
-      // Get current user's session for verification
-      const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
-      if (userError || !authUser) {
-        console.error('Auth error:', userError);
-        toast({
-          title: "Authentication Error",
-          description: "Please log in again to book an appointment.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log('Authenticated user verified:', authUser.id);
-
-      // Get or create patient record
-      let patientId: string;
-      
-      console.log('Looking up patient profile...');
+      // Create patient record first
       const { data: patientData, error: patientError } = await supabase
         .from('patients')
-        .select('id, full_name')
-        .eq('user_id', authUser.id)
-        .maybeSingle();
-
-      console.log('Patient lookup result:', { patientData, patientError });
-
-      if (patientError && patientError.code !== 'PGRST116') {
-        console.error('Patient lookup error:', patientError);
-        toast({
-          title: "Database Error",
-          description: "Failed to access your patient profile. Please try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (!patientData) {
-        console.log('No patient profile found, creating one...');
-        
-        try {
-          const { data: newPatient, error: createError } = await supabase
-            .from('patients')
-            .insert({
-              user_id: authUser.id,
-              full_name: user.fullName || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Patient',
-            })
-            .select('id, full_name')
-            .single();
-
-          if (createError) {
-            console.error('Failed to create patient profile:', createError);
-            toast({
-              title: "Setup Error",
-              description: "Failed to set up your patient profile. Please contact support.",
-              variant: "destructive",
-            });
-            return;
-          }
-
-          console.log('Created new patient profile:', newPatient);
-          patientId = newPatient.id;
-        } catch (error) {
-          console.error('Error creating patient profile:', error);
-          toast({
-            title: "Setup Error",
-            description: "Failed to create your patient profile. Please try again.",
-            variant: "destructive",
-          });
-          return;
-        }
-      } else {
-        patientId = patientData.id;
-        console.log('Using existing patient ID:', patientId);
-      }
-
-      // Check for appointment conflicts (only for real doctors)
-      if (!selectedDoctor.startsWith('mock-')) {
-        console.log('Checking for appointment conflicts...');
-        const { data: existingAppointments, error: conflictError } = await supabase
-          .from('appointments')
-          .select('id')
-          .eq('doctor_id', selectedDoctor)
-          .eq('appointment_date', appointmentDate)
-          .eq('appointment_time', appointmentTime)
-          .in('status', ['scheduled', 'confirmed']);
-
-        if (conflictError) {
-          console.error('Conflict check error:', conflictError);
-          // Continue anyway, as this is not critical
-        }
-
-        if (existingAppointments && existingAppointments.length > 0) {
-          toast({
-            title: "Time Slot Unavailable",
-            description: "This time slot is already booked. Please choose another time.",
-            variant: "destructive",
-          });
-          return;
-        }
-      }
-
-      console.log('No conflicts found, creating appointment...');
-
-      // Create the appointment
-      const appointmentData = {
-        patient_id: patientId,
-        doctor_id: selectedDoctor,
-        appointment_date: appointmentDate,
-        appointment_time: appointmentTime,
-        reason: reason.trim(),
-        consultation_type: consultationType,
-        status: 'scheduled',
-        notes: null
-      };
-
-      console.log('Inserting appointment data:', appointmentData);
-
-      const { data: newAppointment, error: insertError } = await supabase
-        .from('appointments')
-        .insert(appointmentData)
-        .select('*')
+        .insert({
+          full_name: patientName,
+          email: patientEmail,
+          phone: patientPhone,
+          date_of_birth: '1990-01-01', // Default value
+          gender: 'other' // Default value
+        })
+        .select()
         .single();
 
-      if (insertError) {
-        console.error('Appointment creation error:', insertError);
-        toast({
-          title: "Booking Failed",
-          description: insertError.message || "Failed to book appointment. Please try again.",
-          variant: "destructive",
-        });
-        return;
+      if (patientError) {
+        throw patientError;
       }
 
-      console.log('Appointment created successfully:', newAppointment);
-
-      // Try to create a notification (non-critical)
-      try {
-        await supabase.from('notifications').insert({
-          user_id: authUser.id,
-          title: 'Appointment Booked',
-          message: `Your appointment has been scheduled for ${appointmentDate} at ${appointmentTime}`,
-          type: 'success'
+      // Create appointment
+      const { error: appointmentError } = await supabase
+        .from('appointments')
+        .insert({
+          patient_id: patientData.id,
+          doctor_id: selectedDoctor,
+          appointment_date: format(selectedDate, 'yyyy-MM-dd'),
+          appointment_time: selectedTime,
+          reason: reason || 'General consultation',
+          status: 'scheduled'
         });
-        console.log('User notification created');
-      } catch (notifError) {
-        console.log('Notification creation failed (non-critical):', notifError);
+
+      if (appointmentError) {
+        throw appointmentError;
       }
 
-      const selectedDoctorInfo = doctors.find(d => d.id === selectedDoctor);
+      setShowSuccess(true);
       
-      toast({
-        title: "Appointment Booked Successfully!",
-        description: `Your appointment with ${selectedDoctorInfo?.full_name || 'the doctor'} has been scheduled for ${appointmentDate} at ${appointmentTime}.`,
-      });
-
       // Reset form
-      resetForm();
+      setSelectedDate(undefined);
+      setSelectedTime("");
+      setSelectedDoctor("");
+      setReason("");
+      setPatientName("");
+      setPatientEmail("");
+      setPatientPhone("");
 
     } catch (error) {
-      console.error('Unexpected error during booking:', error);
       toast({
         title: "Booking Failed",
-        description: "Something went wrong. Please try again.",
+        description: "There was an error booking your appointment. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const resetForm = () => {
-    setSelectedDoctor("");
-    setAppointmentDate("");
-    setAppointmentTime("");
-    setReason("");
-    setConsultationType("in-person");
-  };
-
-  const today = new Date().toISOString().split('T')[0];
-  const currentTime = new Date().toTimeString().slice(0, 5);
+  const selectedDoctorInfo = doctors.find(d => d.id === selectedDoctor);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center">
-          <Calendar className="mr-2 h-5 w-5 text-blue-600" />
-          Book New Appointment
-          {connectionStatus === 'error' && (
-            <div className="ml-2 flex items-center text-amber-500" role="img" aria-label="Database connection issue - using demo mode">
-              <AlertCircle className="h-4 w-4" />
-            </div>
-          )}
-        </CardTitle>
-        <CardDescription>
-          Schedule an appointment with one of our doctors
-          {connectionStatus === 'error' && (
-            <span className="block text-amber-600 text-sm mt-1">
-              Note: Database connection issue detected. Appointments will be simulated.
-            </span>
-          )}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="doctor">Select Doctor *</Label>
-            <Select value={selectedDoctor} onValueChange={setSelectedDoctor} required disabled={isDoctorsLoading}>
-              <SelectTrigger>
-                <SelectValue placeholder={isDoctorsLoading ? "Loading doctors..." : "Choose a doctor"} />
-              </SelectTrigger>
-              <SelectContent>
-                {isDoctorsLoading ? (
-                  <SelectItem value="loading" disabled>Loading doctors...</SelectItem>
-                ) : doctors.length === 0 ? (
-                  <SelectItem value="none" disabled>No doctors available</SelectItem>
-                ) : (
-                  doctors.map((doctor) => (
-                    <SelectItem key={doctor.id} value={doctor.id}>
-                      <div className="flex items-center justify-between w-full">
-                        <span>{doctor.full_name}</span>
-                        <span className="text-sm text-gray-500 ml-2">
-                          {doctor.specialization} - ${doctor.consultation_fee}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-teal-50 py-12 px-4">
+      <div className="max-w-2xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold healthcare-gradient bg-clip-text text-transparent mb-4">
+            Book Your Appointment
+          </h1>
+          <p className="text-xl text-gray-600">
+            Schedule a consultation with our expert doctors
+          </p>
+        </div>
+
+        <Card className="shadow-xl">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Stethoscope className="h-5 w-5 text-blue-600" />
+              Appointment Details
+            </CardTitle>
+            <CardDescription>
+              Fill out the form below to book your appointment
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Patient Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Patient Information
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="patientName">Full Name *</Label>
+                    <Input
+                      id="patientName"
+                      value={patientName}
+                      onChange={(e) => setPatientName(e.target.value)}
+                      placeholder="Enter your full name"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="patientEmail">Email *</Label>
+                    <Input
+                      id="patientEmail"
+                      type="email"
+                      value={patientEmail}
+                      onChange={(e) => setPatientEmail(e.target.value)}
+                      placeholder="Enter your email"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="patientPhone">Phone Number</Label>
+                  <Input
+                    id="patientPhone"
+                    value={patientPhone}
+                    onChange={(e) => setPatientPhone(e.target.value)}
+                    placeholder="Enter your phone number"
+                  />
+                </div>
+              </div>
+
+              {/* Doctor Selection */}
+              <div className="space-y-4">
+                <Label>Select Doctor *</Label>
+                <Select value={selectedDoctor} onValueChange={setSelectedDoctor}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a doctor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {doctors.map((doctor) => (
+                      <SelectItem key={doctor.id} value={doctor.id}>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{doctor.full_name}</span>
+                          <span className="text-sm text-gray-500">
+                            {doctor.specialization} - ${doctor.consultation_fee}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {selectedDoctorInfo && (
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      <strong>{selectedDoctorInfo.full_name}</strong> - {selectedDoctorInfo.specialization}
+                    </p>
+                    <p className="text-sm text-blue-600">
+                      Consultation Fee: ${selectedDoctorInfo.consultation_fee}
+                    </p>
+                  </div>
                 )}
-              </SelectContent>
-            </Select>
-          </div>
+              </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="date">Appointment Date *</Label>
-              <Input
-                id="date"
-                type="date"
-                value={appointmentDate}
-                onChange={(e) => setAppointmentDate(e.target.value)}
-                min={today}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="time">Appointment Time *</Label>
-              <Input
-                id="time"
-                type="time"
-                value={appointmentTime}
-                onChange={(e) => setAppointmentTime(e.target.value)}
-                min={appointmentDate === today ? currentTime : undefined}
-                required
-              />
-            </div>
-          </div>
+              {/* Date Selection */}
+              <div className="space-y-2">
+                <Label>Appointment Date *</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !selectedDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      disabled={(date) => date < new Date()}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="consultationType">Consultation Type</Label>
-            <Select value={consultationType} onValueChange={setConsultationType}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="in-person">In-Person</SelectItem>
-                <SelectItem value="teleconsultation">Teleconsultation</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+              {/* Time Selection */}
+              <div className="space-y-2">
+                <Label>Appointment Time *</Label>
+                <Select value={selectedTime} onValueChange={setSelectedTime}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select time slot" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timeSlots.map((time) => (
+                      <SelectItem key={time} value={time}>
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          {time}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="reason">Reason for Visit *</Label>
-            <Textarea
-              id="reason"
-              placeholder="Please describe your symptoms or reason for the visit"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              rows={3}
-              required
-            />
-          </div>
+              {/* Reason */}
+              <div className="space-y-2">
+                <Label htmlFor="reason">Reason for Visit</Label>
+                <Textarea
+                  id="reason"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Brief description of your symptoms or reason for visit"
+                  className="min-h-[100px]"
+                />
+              </div>
 
-          <Button 
-            type="submit" 
-            className="w-full healthcare-gradient text-white hover:opacity-90 transition-opacity"
-            disabled={isLoading || isDoctorsLoading}
-          >
-            {isLoading ? "Booking Appointment..." : "Book Appointment"}
-          </Button>
-          
-          {!user && (
-            <p className="text-sm text-gray-600 text-center">
-              Please log in to book an appointment
-            </p>
-          )}
+              <Button 
+                type="submit" 
+                className="w-full healthcare-gradient text-white"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <LoadingSpinner size={16} text="Booking Appointment..." />
+                ) : (
+                  "Book Appointment"
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
-          {connectionStatus === 'error' && (
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-sm text-amber-800">
-                <AlertCircle className="inline h-4 w-4 mr-1" />
-                Database connectivity issues detected. Appointments will be simulated for testing purposes.
-              </p>
-            </div>
-          )}
-        </form>
-      </CardContent>
-    </Card>
+        <SuccessNotification
+          title="Appointment Booked Successfully!"
+          message="Your appointment has been scheduled. You will receive a confirmation email shortly."
+          show={showSuccess}
+          onClose={() => setShowSuccess(false)}
+        />
+      </div>
+    </div>
   );
 };

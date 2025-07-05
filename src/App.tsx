@@ -1,14 +1,11 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
-import { ConnectionStatus } from "@/components/shared/ConnectionStatus";
-import { DeveloperTools } from "@/components/shared/DeveloperTools";
 import Index from "./pages/Index";
-import Testing from "./pages/Testing";
-import ProductionStatus from "./pages/ProductionStatus";
 import PatientDashboard from "./pages/PatientDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -37,7 +34,6 @@ const App = () => {
 
       if (session) {
         const { user } = session;
-        console.log('App.tsx: session found, user:', user);
         login({
           id: user.id,
           email: user.email ?? 'example@email.com',
@@ -45,7 +41,6 @@ const App = () => {
           role: user?.user_metadata?.role as "patient" | "doctor" | "admin" | "super_admin" ?? 'patient',
         });
       } else {
-        console.log('App.tsx: no session found');
         clearUser();
       }
       setLoading(false);
@@ -55,7 +50,6 @@ const App = () => {
 
     // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth event:', event);
       if (event === 'SIGNED_IN' && session) {
         login({
           id: session.user.id,
@@ -79,7 +73,6 @@ const App = () => {
         <ErrorBoundary>
           <Toaster />
           <Sonner />
-          <ConnectionStatus />
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
@@ -90,10 +83,7 @@ const App = () => {
               <Route path="/admin-dashboard" element={<AdminDashboard />} />
               <Route path="/book-appointment" element={<AppointmentBooking />} />
               <Route path="/enhanced-booking" element={<EnhancedAppointmentBooking />} />
-              <Route path="/testing" element={<Testing />} />
-              <Route path="/production-status" element={<ProductionStatus />} />
             </Routes>
-            <DeveloperTools />
           </BrowserRouter>
         </ErrorBoundary>
       </TooltipProvider>

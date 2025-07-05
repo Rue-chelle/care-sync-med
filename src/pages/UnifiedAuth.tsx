@@ -333,7 +333,7 @@ const UnifiedAuth = () => {
     setIsLoading(true);
 
     try {
-      console.log('Attempting registration for:', email);
+      console.log('Attempting patient registration for:', email);
       
       if (!fullName.trim()) {
         toast({
@@ -376,14 +376,14 @@ const UnifiedAuth = () => {
       }
 
       if (data.user) {
-        console.log('User registered:', data.user.id);
+        console.log('Patient registered:', data.user.id);
         
         if (data.session) {
           // User is automatically confirmed, profile will be created by auth listener
-          console.log('User auto-confirmed, waiting for profile creation...');
+          console.log('Patient auto-confirmed, waiting for profile creation...');
           toast({
             title: "Registration successful",
-            description: "Welcome to AloraMed! Setting up your account...",
+            description: "Welcome to AloraMed! Setting up your patient account...",
           });
         } else {
           // Email confirmation required
@@ -446,14 +446,17 @@ const UnifiedAuth = () => {
                 Welcome to AloraMed
               </CardTitle>
               <CardDescription className="text-slate-600">
-                Sign in to access your healthcare dashboard
+                {activeTab === "register" 
+                  ? "Register as a new patient" 
+                  : "Sign in to access your healthcare dashboard"
+                }
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="grid w-full grid-cols-2 mb-6">
                   <TabsTrigger value="login">Sign In</TabsTrigger>
-                  <TabsTrigger value="register">Register</TabsTrigger>
+                  <TabsTrigger value="register">Patient Registration</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="login">
@@ -506,66 +509,75 @@ const UnifiedAuth = () => {
                 </TabsContent>
                 
                 <TabsContent value="register">
-                  <form onSubmit={handleRegister} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="fullName">Full Name</Label>
-                      <Input 
-                        id="fullName" 
-                        placeholder="John Doe" 
-                        value={fullName} 
-                        onChange={(e) => setFullName(e.target.value)} 
-                        required 
-                        className="h-11"
-                        autoComplete="name"
-                      />
+                  <div className="space-y-4">
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <p className="text-sm text-blue-800 font-medium mb-2">Patient Registration</p>
+                      <p className="text-xs text-blue-600">
+                        This registration is for patients only. Doctor and admin accounts are created internally through the administrative dashboard.
+                      </p>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="registerEmail">Email</Label>
-                      <Input 
-                        id="registerEmail" 
-                        type="email" 
-                        placeholder="you@example.com" 
-                        value={email} 
-                        onChange={(e) => setEmail(e.target.value)} 
-                        required 
-                        className="h-11"
-                        autoComplete="email"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="registerPassword">Password</Label>
-                      <div className="relative">
+                    
+                    <form onSubmit={handleRegister} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="fullName">Full Name</Label>
                         <Input 
-                          id="registerPassword" 
-                          type={showPassword ? "text" : "password"}
-                          placeholder="••••••••" 
-                          value={password} 
-                          onChange={(e) => setPassword(e.target.value)} 
+                          id="fullName" 
+                          placeholder="John Doe" 
+                          value={fullName} 
+                          onChange={(e) => setFullName(e.target.value)} 
                           required 
-                          className="h-11 pr-10"
-                          minLength={6}
-                          autoComplete="new-password"
+                          className="h-11"
+                          autoComplete="name"
                         />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
                       </div>
-                      <p className="text-xs text-gray-500">Password must be at least 6 characters</p>
-                    </div>
-                    <Button 
-                      type="submit" 
-                      className="w-full h-11 healthcare-gradient text-white hover:opacity-90 transition-opacity font-medium" 
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "Creating account..." : "Create Account"}
-                    </Button>
-                  </form>
+                      <div className="space-y-2">
+                        <Label htmlFor="registerEmail">Email</Label>
+                        <Input 
+                          id="registerEmail" 
+                          type="email" 
+                          placeholder="you@example.com" 
+                          value={email} 
+                          onChange={(e) => setEmail(e.target.value)} 
+                          required 
+                          className="h-11"
+                          autoComplete="email"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="registerPassword">Password</Label>
+                        <div className="relative">
+                          <Input 
+                            id="registerPassword" 
+                            type={showPassword ? "text" : "password"}
+                            placeholder="••••••••" 
+                            value={password} 
+                            onChange={(e) => setPassword(e.target.value)} 
+                            required 
+                            className="h-11 pr-10"
+                            minLength={6}
+                            autoComplete="new-password"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-gray-500">Password must be at least 6 characters</p>
+                      </div>
+                      <Button 
+                        type="submit" 
+                        className="w-full h-11 healthcare-gradient text-white hover:opacity-90 transition-opacity font-medium" 
+                        disabled={isLoading}
+                      >
+                        {isLoading ? "Creating patient account..." : "Register as Patient"}
+                      </Button>
+                    </form>
+                  </div>
                 </TabsContent>
               </Tabs>
             </CardContent>
@@ -611,14 +623,12 @@ const UnifiedAuth = () => {
                 );
               })}
               
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <h4 className="text-sm font-medium text-blue-900 mb-2">🚀 Now Ready for Real Users:</h4>
-                <ul className="text-xs text-blue-700 space-y-1">
-                  <li>• Enhanced authentication with proper error handling</li>
-                  <li>• Fixed patient profile creation & data persistence</li>
-                  <li>• Improved appointment booking functionality</li>
-                  <li>• Real-time database connection testing</li>
-                </ul>
+              <div className="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                <h4 className="text-sm font-medium text-amber-900 mb-2">🏥 For Healthcare Staff:</h4>
+                <p className="text-xs text-amber-700">
+                  Doctor and admin accounts are created internally through the administrative dashboard. 
+                  Contact your system administrator for access.
+                </p>
               </div>
             </CardContent>
           </Card>

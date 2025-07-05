@@ -5,14 +5,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
-import Index from "./pages/Index";
+import UnifiedAuth from "./pages/UnifiedAuth";
 import PatientDashboard from "./pages/PatientDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import { AppointmentBooking } from "@/components/patient/AppointmentBooking";
 import { EnhancedAppointmentBooking } from "@/components/patient/EnhancedAppointmentBooking";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
 import { useUserStore } from "@/stores/userStore";
 import { useEffect } from "react";
 import { supabase } from "./integrations/supabase/client";
@@ -75,12 +74,12 @@ const App = () => {
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/patient-dashboard" element={<PatientDashboard />} />
-              <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
-              <Route path="/admin-dashboard" element={<AdminDashboard />} />
+              <Route path="/" element={<UnifiedAuth />} />
+              <Route path="/auth" element={<UnifiedAuth />} />
+              <Route path="/patient" element={<PatientDashboard />} />
+              <Route path="/doctor" element={<DoctorDashboard />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/super-admin" element={<SuperAdminDashboard />} />
               <Route path="/book-appointment" element={<AppointmentBooking />} />
               <Route path="/enhanced-booking" element={<EnhancedAppointmentBooking />} />
             </Routes>

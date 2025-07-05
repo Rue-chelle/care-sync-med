@@ -76,15 +76,26 @@ export const AppointmentBooking = () => {
     setIsSubmitting(true);
 
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to book an appointment.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Create patient record first
       const { data: patientData, error: patientError } = await supabase
         .from('patients')
         .insert({
           full_name: patientName,
-          email: patientEmail,
           phone: patientPhone,
           date_of_birth: '1990-01-01', // Default value
-          gender: 'other' // Default value
+          gender: 'other', // Default value
+          user_id: user.id
         })
         .select()
         .single();

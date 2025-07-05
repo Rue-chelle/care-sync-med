@@ -15,10 +15,7 @@ import { GlobalNotificationsPanel } from "@/components/shared/GlobalNotification
 import { Button } from "@/components/ui/button";
 import { useUserStore } from "@/stores/userStore";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { LogOut, Bell, Menu, TrendingUp, Building, Users, CreditCard, Settings, MessageSquare, FileText, BarChart, X, Activity, CheckCircle2 } from "lucide-react";
-// Import testing components
-import { TestingSuite } from "@/components/testing/TestingSuite";
-import { ValidationChecklist } from "@/components/testing/ValidationChecklist";
+import { LogOut, Bell, Menu, TrendingUp, Building, Users, CreditCard, Settings, MessageSquare, FileText, BarChart, X } from "lucide-react";
 
 const SuperAdminDashboard = () => {
   const [currentTab, setCurrentTab] = useState("overview");
@@ -37,9 +34,6 @@ const SuperAdminDashboard = () => {
     setCurrentTab("settings");
   };
 
-  // Only super_admins should see the internal testing tab
-  const isSuperAdmin = user?.role === "super_admin";
-
   const sidebarItems = [
     { id: "overview", label: "Overview", icon: TrendingUp },
     { id: "clinics", label: "Clinics", icon: Building },
@@ -51,7 +45,6 @@ const SuperAdminDashboard = () => {
     { id: "broadcasts", label: "Broadcasts", icon: MessageSquare },
     { id: "audit", label: "Audit Logs", icon: FileText },
     { id: "settings", label: "System Settings", icon: Settings },
-    ...(isSuperAdmin ? [{ id: "internal-testing", label: "Internal Testing", icon: Activity }] : []),
   ];
 
   const renderContent = () => {
@@ -76,24 +69,6 @@ const SuperAdminDashboard = () => {
         return <AuditLogs />;
       case "settings":
         return <SystemSettings onBack={() => setCurrentTab("overview")} />;
-      case "internal-testing":
-        // Show a note to the admin about intent
-        return (
-          <div className="space-y-8">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4 flex items-center gap-2">
-              <CheckCircle2 className="text-yellow-600 h-5 w-5" />
-              <span className="text-yellow-700 font-medium">
-                This section is for internal testing, monitoring, and validation only.
-                <br />
-                Testing tools are available here for future regression checks and maintenance.
-              </span>
-            </div>
-            <div className="space-y-8">
-              <ValidationChecklist />
-              <TestingSuite />
-            </div>
-          </div>
-        );
       default:
         return <SuperAdminOverview onNavigateToSettings={handleNavigateToSettings} />;
     }

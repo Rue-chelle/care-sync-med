@@ -1,3 +1,4 @@
+
 import { productionConfig } from "@/config/production";
 
 export interface ErrorEvent {
@@ -64,14 +65,14 @@ export class MonitoringService {
   static async healthCheck(): Promise<boolean> {
     try {
       // Check database connectivity
-      const { error } = await fetch(`${process.env.SUPABASE_URL}/rest/v1/`, {
+      const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/`, {
         method: 'HEAD',
         headers: {
           'apikey': process.env.SUPABASE_ANON_KEY || '',
         }
       });
 
-      if (error) {
+      if (!response.ok) {
         this.logError({
           message: 'Health check failed - database connectivity',
           severity: 'critical',

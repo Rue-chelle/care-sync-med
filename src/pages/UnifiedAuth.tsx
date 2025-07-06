@@ -1,14 +1,18 @@
+
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useUserStore } from "@/stores/userStore";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Stethoscope, Shield, Crown, Eye, EyeOff } from "lucide-react";
+import { AuthService } from "@/services/authService";
+import { MonitoringService } from "@/services/monitoringService";
+import { User, Stethoscope, Shield, Crown, Eye, EyeOff, CheckCircle, Mail } from "lucide-react";
 
 const UnifiedAuth = () => {
   const [activeTab, setActiveTab] = useState("login");
@@ -17,9 +21,32 @@ const UnifiedAuth = () => {
   const [fullName, setFullName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [emailConfirmed, setEmailConfirmed] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { login, isAuthenticated, user } = useUserStore();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    // Check for email confirmation or password reset in URL
+    const confirmed = searchParams.get('confirmed');
+    const reset = searchParams.get('reset');
+    
+    if (confirmed === 'true') {
+      setEmailConfirmed(true);
+      toast({
+        title: "Email confirmed!",
+        description: "Your email has been verified. You can now sign in.",
+      });
+    }
+    
+    if (reset === 'true') {
+      toast({
+        title: "Password reset link sent",
+        description: "Check your email for password reset instructions.",
+      });
+    }
+  }, [searchParams, toast]);
 
   useEffect(() => {
     let mounted = true;
@@ -28,6 +55,7 @@ const UnifiedAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
+      MonitoringService.logUserAction('auth_state_change', { event, userId: session?.user?.id });
       console.log('Auth state change:', event, session?.user?.id);
       
       if (event === 'SIGNED_IN' && session?.user) {
@@ -36,6 +64,13 @@ const UnifiedAuth = () => {
           await handleAuthenticatedUser(session.user);
         } catch (error) {
           console.error('Error handling authenticated user:', error);
+          MonitoringService.logError({
+            message: 'Authentication error during user processing',
+            stack: error instanceof Error ? error.stack : String(error),
+            userId: session.user.id,
+            severity: 'high',
+            timestamp: new Date()
+          });
           toast({
             title: "Authentication Error",
             description: "There was an issue setting up your account. Please try again.",
@@ -58,6 +93,12 @@ const UnifiedAuth = () => {
         
         if (error) {
           console.error('Session check error:', error);
+          MonitoringService.logError({
+            message: 'Session check error',
+            stack: error.message,
+            severity: 'medium',
+            timestamp: new Date()
+          });
           return;
         }
         
@@ -69,6 +110,12 @@ const UnifiedAuth = () => {
         }
       } catch (error) {
         console.error('Error checking session:', error);
+        MonitoringService.logError({
+          message: 'Exception during session check',
+          stack: error instanceof Error ? error.stack : String(error),
+          severity: 'medium',
+          timestamp: new Date()
+        });
       }
     };
 
@@ -262,62 +309,65 @@ const UnifiedAuth = () => {
     try {
       console.log('Attempting login for:', email);
       
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-
-      if (error) {
-        console.error('Supabase auth error:', error);
-        
-        // Only fall back to mock authentication for demo purposes with specific demo credentials
-        if (error.message.includes('Invalid login credentials') || error.message.includes('Email not confirmed')) {
-          console.log('Checking for demo credentials...');
-          const mockUsers = [
-            { email: "patient@aloramedapp.com", password: "password123", role: "patient" as const, name: "John Patient" },
-            { email: "doctor@aloramedapp.com", password: "password123", role: "doctor" as const, name: "Dr. Sarah Wilson" },
-            { email: "admin@aloramedapp.com", password: "password123", role: "admin" as const, name: "Admin User" },
-            { email: "superadmin@aloramedapp.com", password: "password123", role: "super_admin" as const, name: "Super Administrator" }
-          ];
-
-          const mockUser = mockUsers.find(user => user.email === email.trim() && user.password === password);
-          
-          if (mockUser) {
-            console.log('Using mock authentication for:', mockUser.role);
-            
-            login({
-              id: "mock-" + mockUser.role,
-              email: mockUser.email,
-              fullName: mockUser.name,
-              role: mockUser.role
-            });
-            
-            toast({
-              title: "Login successful (Demo Mode)",
-              description: `Welcome back, ${mockUser.name}!`,
-            });
-
-            return;
-          }
-        }
-
-        toast({
-          title: "Login failed",
-          description: error.message || "Invalid credentials. Please try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (data.user) {
-        console.log('Login successful for user:', data.user.id);
+      // Try enhanced auth service first
+      const result = await AuthService.signIn(email, password);
+      
+      if (result.success) {
         toast({
           title: "Login successful",
           description: "Welcome back!",
         });
+        return;
       }
+
+      // If auth service fails, fall back to mock authentication for demo purposes
+      if (result.error?.message.includes('Invalid login credentials') || result.error?.code === 'invalid_credentials') {
+        console.log('Checking for demo credentials...');
+        const mockUsers = [
+          { email: "patient@aloramedapp.com", password: "password123", role: "patient" as const, name: "John Patient" },
+          { email: "doctor@aloramedapp.com", password: "password123", role: "doctor" as const, name: "Dr. Sarah Wilson" },
+          { email: "admin@aloramedapp.com", password: "password123", role: "admin" as const, name: "Admin User" },
+          { email: "superadmin@aloramedapp.com", password: "password123", role: "super_admin" as const, name: "Super Administrator" }
+        ];
+
+        const mockUser = mockUsers.find(user => user.email === email.trim() && user.password === password);
+        
+        if (mockUser) {
+          console.log('Using mock authentication for:', mockUser.role);
+          
+          login({
+            id: "mock-" + mockUser.role,
+            email: mockUser.email,
+            fullName: mockUser.name,
+            role: mockUser.role
+          });
+          
+          toast({
+            title: "Login successful (Demo Mode)",
+            description: `Welcome back, ${mockUser.name}!`,
+          });
+
+          MonitoringService.logUserAction('demo_login', { 
+            email: mockUser.email, 
+            role: mockUser.role 
+          });
+          return;
+        }
+      }
+
+      toast({
+        title: "Login failed",
+        description: result.error?.message || "Invalid credentials. Please try again.",
+        variant: "destructive",
+      });
     } catch (error) {
       console.error('Login error:', error);
+      MonitoringService.logError({
+        message: 'Login exception',
+        stack: error instanceof Error ? error.stack : String(error),
+        severity: 'medium',
+        timestamp: new Date()
+      });
       toast({
         title: "Login failed",
         description: "Something went wrong. Please try again.",
@@ -353,40 +403,10 @@ const UnifiedAuth = () => {
         return;
       }
 
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          data: {
-            full_name: fullName.trim(),
-            role: 'patient'
-          },
-          emailRedirectTo: `${window.location.origin}/auth`
-        }
-      });
+      const result = await AuthService.signUp(email, password, fullName, 'patient');
 
-      if (error) {
-        console.error('Registration error:', error);
-        toast({
-          title: "Registration failed",
-          description: error.message,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (data.user) {
-        console.log('Patient registered:', data.user.id);
-        
-        if (data.session) {
-          // User is automatically confirmed, profile will be created by auth listener
-          console.log('Patient auto-confirmed, waiting for profile creation...');
-          toast({
-            title: "Registration successful",
-            description: "Welcome to AloraMed! Setting up your patient account...",
-          });
-        } else {
-          // Email confirmation required
+      if (result.success) {
+        if (result.requiresConfirmation) {
           toast({
             title: "Registration successful",
             description: "Please check your email to verify your account before signing in.",
@@ -395,10 +415,28 @@ const UnifiedAuth = () => {
           setEmail("");
           setPassword("");
           setFullName("");
+        } else {
+          toast({
+            title: "Registration successful",
+            description: "Welcome to AloraMed! Setting up your patient account...",
+          });
         }
+        return;
       }
+
+      toast({
+        title: "Registration failed",
+        description: result.error?.message || "Registration failed. Please try again.",
+        variant: "destructive",
+      });
     } catch (error) {
       console.error('Registration error:', error);
+      MonitoringService.logError({
+        message: 'Registration exception',
+        stack: error instanceof Error ? error.stack : String(error),
+        severity: 'medium',
+        timestamp: new Date()
+      });
       toast({
         title: "Registration failed",
         description: "Something went wrong. Please try again.",

@@ -126,7 +126,7 @@ export const AppointmentsList = () => {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">My Appointments</h3>
+{/*       <h3 className="text-lg font-semibold">My Appointments</h3> */}
       {appointments.length === 0 ? (
         <Card>
           <CardContent className="p-6 text-center">

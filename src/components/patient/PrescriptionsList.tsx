@@ -78,7 +78,7 @@ export const PrescriptionsList = () => {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">My Prescriptions</h3>
+{/*       <h3 className="text-lg font-semibold">My Prescriptions</h3> */}
       {prescriptions.length === 0 ? (
         <Card>
           <CardContent className="p-6 text-center">

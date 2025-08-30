@@ -73,6 +73,18 @@ export const RegisterForm = () => {
           if (doctorError) {
             console.error('Doctor profile creation error:', doctorError);
           }
+        } else if (role === "admin") {
+          const { error: adminError } = await supabase
+            .from('admins')
+            .insert({
+              user_id: data.user.id,
+              full_name: fullName,
+              email: email,
+            });
+
+          if (adminError) {
+            console.error('Admin profile creation error:', adminError);
+          }
         }
 
         register({

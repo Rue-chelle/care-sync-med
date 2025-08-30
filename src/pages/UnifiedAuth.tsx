@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AuthService } from "@/services/authService";
 import { MonitoringService } from "@/services/monitoringService";
 import { User, Stethoscope, Shield, Crown, Eye, EyeOff, CheckCircle, Mail } from "lucide-react";
+import { RoleSelection } from "@/components/auth/RoleSelection";
 
 const UnifiedAuth = () => {
   const [activeTab, setActiveTab] = useState("login");
@@ -22,6 +23,8 @@ const UnifiedAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [emailConfirmed, setEmailConfirmed] = useState(false);
+  const [showRoleSelection, setShowRoleSelection] = useState(false);
+  const [pendingAuthUser, setPendingAuthUser] = useState<any>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { login, isAuthenticated, user } = useUserStore();
@@ -144,7 +147,7 @@ const UnifiedAuth = () => {
     console.log('Processing authenticated user:', authUser.id, authUser.email);
     
     try {
-      // Check for existing profiles in order: patient, doctor, super_admin
+      // Check for existing profiles in all tables
       console.log('Checking for patient profile...');
       const { data: patientData, error: patientError } = await supabase
         .from('patients')
@@ -192,6 +195,30 @@ const UnifiedAuth = () => {
         return;
       }
 
+      // Check for admin profile
+      console.log('Checking for admin profile...');
+      const { data: adminData, error: adminError } = await supabase
+        .from('admins')
+        .select('*')
+        .eq('user_id', authUser.id)
+        .maybeSingle();
+
+      if (adminError && adminError.code !== 'PGRST116') {
+        console.error('Admin query error:', adminError);
+        throw adminError;
+      }
+
+      if (adminData) {
+        console.log('Found admin profile:', adminData);
+        login({
+          id: authUser.id,
+          email: authUser.email,
+          fullName: adminData.full_name,
+          role: 'admin'
+        });
+        return;
+      }
+
       // Check for super admin profile
       console.log('Checking for super admin profile...');
       const { data: superAdminData, error: superAdminError } = await supabase
@@ -216,21 +243,10 @@ const UnifiedAuth = () => {
         return;
       }
 
-      // Check if should be admin based on email
-      if (authUser.email?.includes('admin') && !authUser.email?.includes('superadmin')) {
-        console.log('Setting as admin based on email');
-        login({
-          id: authUser.id,
-          email: authUser.email,
-          fullName: authUser.user_metadata?.full_name || 'Admin User',
-          role: 'admin'
-        });
-        return;
-      }
-
-      // If no role found, create as patient by default
-      console.log('No profile found, creating patient profile...');
-      await createPatientProfile(authUser);
+      // If no profile found, show role selection instead of auto-creating patient
+      console.log('No profile found, user needs to select role');
+      setShowRoleSelection(true);
+      setPendingAuthUser(authUser);
 
     } catch (error) {
       console.error('Error processing authenticated user:', error);
@@ -459,6 +475,21 @@ const UnifiedAuth = () => {
     setPassword(password);
     setActiveTab("login");
   };
+
+  const handleRoleSelectionComplete = () => {
+    setShowRoleSelection(false);
+    setPendingAuthUser(null);
+  };
+
+  // Show role selection if user needs to choose a role
+  if (showRoleSelection && pendingAuthUser) {
+    return (
+      <RoleSelection 
+        authUser={pendingAuthUser} 
+        onComplete={handleRoleSelectionComplete}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-teal-50 flex items-center justify-center px-4 py-8">
